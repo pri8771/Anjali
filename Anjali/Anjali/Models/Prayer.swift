@@ -114,3 +114,50 @@ struct Prayer: Identifiable, Codable, Hashable {
         isReviewed && !needsReview
     }
 }
+
+extension Prayer {
+    enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case deity
+        case moments
+        case intentions
+        case timeContexts
+        case durationSeconds
+        case availableModes
+        case primaryText
+        case transliteration
+        case meaning
+        case sourceTitle
+        case provenance
+        case audioAssetName
+        case isReviewed
+        case needsReview
+        case isFeatured
+        case sortOrder
+        case rotationPolicy
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.title = try container.decode(String.self, forKey: .title)
+        self.deity = try container.decodeIfPresent(Deity.self, forKey: .deity)
+        self.moments = try container.decode([Moment].self, forKey: .moments)
+        self.intentions = try container.decode([Intention].self, forKey: .intentions)
+        self.timeContexts = try container.decode([TimeContext].self, forKey: .timeContexts)
+        self.durationSeconds = try container.decode(Int.self, forKey: .durationSeconds)
+        self.availableModes = try container.decode([PlayMode].self, forKey: .availableModes)
+        self.primaryText = try container.decode(PrayerText.self, forKey: .primaryText)
+        self.transliteration = try container.decode(String.self, forKey: .transliteration)
+        self.meaning = try container.decode(String.self, forKey: .meaning)
+        self.sourceTitle = try container.decode(String.self, forKey: .sourceTitle)
+        self.provenance = try container.decodeIfPresent(Provenance.self, forKey: .provenance) ?? .unsigned
+        self.audioAssetName = try container.decodeIfPresent(String.self, forKey: .audioAssetName)
+        self.isReviewed = try container.decode(Bool.self, forKey: .isReviewed)
+        self.needsReview = try container.decode(Bool.self, forKey: .needsReview)
+        self.isFeatured = try container.decode(Bool.self, forKey: .isFeatured)
+        self.sortOrder = try container.decode(Int.self, forKey: .sortOrder)
+        self.rotationPolicy = try container.decode(RotationPolicy.self, forKey: .rotationPolicy)
+    }
+}
