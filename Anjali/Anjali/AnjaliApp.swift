@@ -12,6 +12,8 @@ struct AnjaliApp: App {
     private let notificationDelegate = NotificationDelegate()
 
     init() {
+        Self.resetStateIfRequestedForUITesting()
+
         let library = PrayerLibrary()
         let settings = AppSettings()
         _library = StateObject(wrappedValue: library)
@@ -47,6 +49,27 @@ struct AnjaliApp: App {
                 }
         }
         .modelContainer(modelContainer)
+    }
+
+    /// Testability hook, not a user-facing feature: `AnjaliUITests` passes
+    /// `-uiTestReset` so every run starts from a clean, deterministic
+    /// first-launch state (onboarding not yet completed, no saved
+    /// preferences), regardless of what a previous run on the same simulator
+    /// left behind.
+    ///
+    /// Deliberately wipes the persisted domain directly rather than
+    /// overriding individual keys via `-key value` launch arguments: those
+    /// are registered in `NSArgumentDomain`, which outranks the app's own
+    /// `UserDefaults` writes for the lifetime of the process — so a value
+    /// like `hasCompletedOnboarding` forced to `NO` that way can never be
+    /// flipped back to `YES` by the app itself (e.g. after the user finishes
+    /// onboarding), silently breaking any flow that both reads and writes
+    /// the same default.
+    private static func resetStateIfRequestedForUITesting() {
+        guard ProcessInfo.processInfo.arguments.contains("-uiTestReset") else { return }
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+        }
     }
 }
 

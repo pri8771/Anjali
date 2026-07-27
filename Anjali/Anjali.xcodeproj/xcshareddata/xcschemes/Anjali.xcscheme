@@ -20,6 +20,20 @@
                ReferencedContainer = "container:Anjali.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "AB00000000000000000000B3"
+               BuildableName = "AnjaliUITests.xctest"
+               BlueprintName = "AnjaliUITests"
+               ReferencedContainer = "container:Anjali.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -35,6 +49,16 @@
                BlueprintIdentifier = "AB00000000000000000000B2"
                BuildableName = "AnjaliTests.xctest"
                BlueprintName = "AnjaliTests"
+               ReferencedContainer = "container:Anjali.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "AB00000000000000000000B3"
+               BuildableName = "AnjaliUITests.xctest"
+               BlueprintName = "AnjaliUITests"
                ReferencedContainer = "container:Anjali.xcodeproj">
             </BuildableReference>
          </TestableReference>
