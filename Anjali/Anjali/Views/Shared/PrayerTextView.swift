@@ -26,6 +26,7 @@ struct PrayerTextView: View {
                     .multilineTextAlignment(.center)
             }
         }
+        .textSelection(.enabled)
     }
 
     private var showsDevanagari: Bool {

@@ -7,12 +7,20 @@ struct AnjaliApp: App {
     @StateObject private var library: PrayerLibrary
     @StateObject private var settings: AppSettings
     @StateObject private var coordinator: AppCoordinator
+    @StateObject private var persistenceHealth: PersistenceHealth
 
     private let modelContainer: ModelContainer
     private let notificationDelegate = NotificationDelegate()
 
     init() {
-        Self.resetStateIfRequestedForUITesting()
+        #if DEBUG
+        let shouldResetUITestState = ProcessInfo.processInfo.arguments.contains("-uiTestReset")
+        if shouldResetUITestState {
+            Self.resetUserDefaultsForUITesting()
+        }
+        #else
+        let shouldResetUITestState = false
+        #endif
 
         let library = PrayerLibrary()
         let settings = AppSettings()
@@ -22,16 +30,25 @@ struct AnjaliApp: App {
 
         // SwiftData for user-generated state only. Fall back to an in-memory
         // store if the on-disk store cannot be created, so the app still runs.
+        // PersistenceHealth makes that degraded state visible to the user.
         let schema = Schema([PrayerCompletion.self, FavoritePrayer.self])
         if let container = try? ModelContainer(for: schema) {
             modelContainer = container
+            _persistenceHealth = StateObject(wrappedValue: PersistenceHealth(isPersistent: true))
         } else {
             // swiftlint:disable:next force_try
             modelContainer = try! ModelContainer(
                 for: schema,
                 configurations: ModelConfiguration(isStoredInMemoryOnly: true)
             )
+            _persistenceHealth = StateObject(wrappedValue: PersistenceHealth(isPersistent: false))
         }
+
+        #if DEBUG
+        if shouldResetUITestState {
+            Self.resetSwiftDataForUITesting(in: modelContainer)
+        }
+        #endif
     }
 
     var body: some Scene {
@@ -40,6 +57,7 @@ struct AnjaliApp: App {
                 .environmentObject(library)
                 .environmentObject(settings)
                 .environmentObject(coordinator)
+                .environmentObject(persistenceHealth)
                 .onAppear {
                     notificationDelegate.coordinator = coordinator
                     UNUserNotificationCenter.current().delegate = notificationDelegate
@@ -51,11 +69,10 @@ struct AnjaliApp: App {
         .modelContainer(modelContainer)
     }
 
-    /// Testability hook, not a user-facing feature: `AnjaliUITests` passes
+    #if DEBUG
+    /// Debug-only testability hook: `AnjaliUITests` passes
     /// `-uiTestReset` so every run starts from a clean, deterministic
-    /// first-launch state (onboarding not yet completed, no saved
-    /// preferences), regardless of what a previous run on the same simulator
-    /// left behind.
+    /// first-launch state, regardless of what a previous run left behind.
     ///
     /// Deliberately wipes the persisted domain directly rather than
     /// overriding individual keys via `-key value` launch arguments: those
@@ -65,12 +82,23 @@ struct AnjaliApp: App {
     /// flipped back to `YES` by the app itself (e.g. after the user finishes
     /// onboarding), silently breaking any flow that both reads and writes
     /// the same default.
-    private static func resetStateIfRequestedForUITesting() {
-        guard ProcessInfo.processInfo.arguments.contains("-uiTestReset") else { return }
+    private static func resetUserDefaultsForUITesting() {
         if let bundleID = Bundle.main.bundleIdentifier {
             UserDefaults.standard.removePersistentDomain(forName: bundleID)
         }
     }
+
+    private static func resetSwiftDataForUITesting(in container: ModelContainer) {
+        let context = ModelContext(container)
+        do {
+            try context.delete(model: PrayerCompletion.self)
+            try context.delete(model: FavoritePrayer.self)
+            try context.save()
+        } catch {
+            assertionFailure("Could not reset SwiftData for UI tests: \(error)")
+        }
+    }
+    #endif
 }
 
 /// Routes notification taps into the coordinator's deep-link handling.

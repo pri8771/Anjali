@@ -16,7 +16,7 @@
       "dawn",
       "morning"
     ],
-    "durationSeconds": 35,
+    "durationSeconds": 12,
     "availableModes": [
       "listen",
       "chant",
@@ -97,7 +97,7 @@
       "morning",
       "midday"
     ],
-    "durationSeconds": 19,
+    "durationSeconds": 30,
     "availableModes": [
       "listen",
       "chant",
@@ -138,7 +138,7 @@
       "morning",
       "sunset"
     ],
-    "durationSeconds": 180,
+    "durationSeconds": 15,
     "availableModes": [
       "listen",
       "chant",
@@ -220,7 +220,7 @@
       "morning",
       "midday"
     ],
-    "durationSeconds": 113,
+    "durationSeconds": 20,
     "availableModes": [
       "listen",
       "chant",
@@ -278,7 +278,7 @@
       "reviewer": "",
       "reviewedOn": ""
     },
-    "audioAssetName": null,
+    "audioAssetName": "vishnu-shantakaram",
     "isReviewed": true,
     "needsReview": false,
     "isFeatured": false,
@@ -302,7 +302,7 @@
       "midday",
       "sunset"
     ],
-    "durationSeconds": 89,
+    "durationSeconds": 20,
     "availableModes": [
       "listen",
       "chant",
@@ -342,7 +342,7 @@
       "morning",
       "sunset"
     ],
-    "durationSeconds": 22,
+    "durationSeconds": 45,
     "availableModes": [
       "listen",
       "chant",
@@ -440,7 +440,7 @@
       "reviewer": "",
       "reviewedOn": ""
     },
-    "audioAssetName": null,
+    "audioAssetName": "hanuman-manojavam",
     "isReviewed": true,
     "needsReview": false,
     "isFeatured": false,
@@ -628,7 +628,7 @@
     "timeContexts": [
       "dawn"
     ],
-    "durationSeconds": 28,
+    "durationSeconds": 30,
     "availableModes": [
       "listen",
       "chant",
@@ -750,7 +750,7 @@
       "dawn",
       "night"
     ],
-    "durationSeconds": 26,
+    "durationSeconds": 25,
     "availableModes": [
       "listen",
       "chant",
@@ -790,7 +790,7 @@
       "sunset",
       "morning"
     ],
-    "durationSeconds": 22,
+    "durationSeconds": 25,
     "availableModes": [
       "listen",
       "chant",

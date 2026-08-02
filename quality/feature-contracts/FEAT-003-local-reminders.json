@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/pri8771/iOS_app_factory_rules/main/schemas/feature-contract.schema.json",
+  "id": "FEAT-003",
+  "name": "Opt-in local reminders",
+  "status": "verification_pending",
+  "userOutcome": "Choose optional dawn, sunset, or sleep reminders, edit each local time, and retain the previous working setting when scheduling fails, without being forced to grant notification permission.",
+  "entryPoints": [
+    "Me tab Reminders section"
+  ],
+  "productionDataSource": "UNUserNotificationCenter local calendar notification requests and UserDefaults reminder preferences.",
+  "states": [
+    "off",
+    "requesting-permission",
+    "authorized",
+    "denied",
+    "scheduling",
+    "scheduled",
+    "editing-time",
+    "rescheduling",
+    "rescheduled",
+    "reschedule-failed-rolled-back",
+    "schedule-failed",
+    "cancelled"
+  ],
+  "errorBehavior": "Onboarding never requests notification permission. Reminder toggles and enabled reminder times update persisted preferences only after UNUserNotificationCenter confirms scheduling; a failed time edit restores the previous displayed and persisted time, leaves the prior stable-ID request in effect, and explains recovery. Foreground reconciliation removes stale enabled toggles when no matching system request remains, and denial offers an Open iOS Settings recovery action.",
+  "duplicateProtectionRequired": true,
+  "persistenceRequired": true,
+  "layoutScenarios": [
+    "all reminders off",
+    "mixed reminder states",
+    "editable locale-aware time controls",
+    "failed time edit restored to previous value",
+    "permission denied note",
+    "largest accessibility text"
+  ],
+  "accessibilityRequirements": [
+    "Each reminder is a labeled system Toggle.",
+    "Each enabled reminder has a labeled locale-aware time DatePicker.",
+    "Denial and scheduling failure messages are readable by VoiceOver.",
+    "No permission request occurs before an explicit opt-in."
+  ],
+  "prohibitedBehavior": [
+    "Do not request notification permission on launch.",
+    "Do not show a reminder as enabled before scheduling succeeds.",
+    "Do not create duplicate requests for repeated taps.",
+    "Do not change a reminder's stable notification identifier when its time changes.",
+    "Do not persist or continue displaying a new enabled-reminder time before rescheduling succeeds.",
+    "Do not treat permission denial as a fatal error."
+  ],
+  "acceptanceTests": [
+    "Manual Me-tab opt-in permission grant and denial checks",
+    "AppSettingsTests reminder-time persistence and invalid-value recovery",
+    "Manual edit, relaunch, failed-update rollback, timezone, and daylight-saving checks",
+    "Manual reminder delivery check on a real device",
+    "DeepLinkTests for local notification destinations"
+  ]
+}

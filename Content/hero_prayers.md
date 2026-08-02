@@ -48,14 +48,15 @@ every Today time band has audio-ready content (dawn, morning, midday via
 before-work/study, sunset, night/sleep). Both text-only prayers have an
 audio-covered sibling for the same deity, so deferring them costs no breadth.
 
-## Current v1 audio status — PROVISIONAL, not shippable
+## Current audio-source status — PROVISIONAL, excluded from Release
 
-Every file below is a placeholder, not a reviewed human recitation. Both
+Every file below is a source placeholder, not a reviewed human recitation. Both
 sources fail `audio_spec.md` (no pronunciation review, no −16 LUFS pass,
 `digital_temple` tracks also carry AI-generated production/instrumentation
-instead of a clean unaccompanied voice). **All 20 must be replaced with
-reviewed human recordings before App Store submission** — see the blocker in
-`AppStore/RELEASE_CHECKLIST.md` §4.
+instead of a clean unaccompanied voice). These files remain in the repository
+for review/reference, but target membership excludes them and every shipping
+catalog record uses `audioAssetName: null`. **Do not re-enable a track until it
+is replaced with a reviewed human recording.**
 
 | id | source | dur | note |
 | --- | --- | --- | --- |
@@ -81,10 +82,27 @@ reviewed human recordings before App Store submission** — see the blocker in
 | `shanti-saha-navavatu` | macOS TTS (`Lekha`, Hindi) | ~26s | synthesized speech, not sung/chanted |
 
 `digital_temple` tracks were copied (not moved) from
-`Documents/Github/digital_temple/digital_temple/digital_temple/Resources/Audio/`,
+`Documents/wip_apps/core_apps/digital_temple/digital_temple/digital_temple/Resources/Audio/`,
 a sibling project's Suno-AI-generated devotional music library — the source
-files there are unchanged. `durationSeconds` in `prayers.json` was updated to
-match each swapped track's real length so the UI duration chip and Silent/Chant
-timers stay honest; this pushed four prayers (`ganesha-gam`, `shiva-namah`,
-`vishnu-narayana`, `krishna-vasudeva`) well past their original short
-"sacred pause" target because no short-form match existed in that library.
+files there are unchanged. Duration and mode choices must be reviewed alongside
+any approved recordings before audio is re-enabled.
+
+The 29 July 2026 source audit found:
+
+- Debug previously substituted `vishnu-narayana` for
+  `vishnu-shantakaram` and `hanuman-namah` for `hanuman-manojavam`. Those
+  cross-prayer fallbacks are prohibited and removed.
+- `shanti-asato-ma` is not an exact catalog-text match: the Digital Temple
+  source verse includes a leading Oṃ and closing triple Śānti absent from
+  Anjali's canonical three-line record.
+- The 11 Lekha files use the matching prayer text as generation input but
+  repeat it three to seven times; they have no pronunciation approval.
+- The nine Suno hashes match Digital Temple catalog assets, but catalog lyrics
+  and titles do not prove the audible output. They need verbatim heard
+  transcripts and named approval.
+- Svara is not an independent source of approved audio; its provenance document
+  says source, consent, license, and human review remain pending.
+
+See `audio_candidate_manifest.csv`,
+`../quality/evidence/2026-07-29-audio-lyrics-source-audit.md`, and
+`../docs/AUDIO_LYRIC_ALIGNMENT_PLAN.md`.

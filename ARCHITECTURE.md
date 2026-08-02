@@ -16,7 +16,7 @@
 ┌────────────────────────────────────────────────────────┐
 │ Views (SwiftUI)                                          │
 │   RootView → Onboarding | MainTabView                    │
-│   Today / Moments / Me / PrayerPlayer / Completion       │
+│   Today / Find / Me / PrayerPlayer / Completion          │
 ├────────────────────────────────────────────────────────┤
 │ Coordination & State                                     │
 │   AppCoordinator (tabs, deep links, player presentation) │
@@ -25,7 +25,7 @@
 ├────────────────────────────────────────────────────────┤
 │ Engine (pure, testable)                                  │
 │   TodayContextEngine  TimeBandResolver  PrayerDataLoader │
-│   DeepLink  NotificationManager                          │
+│   DeepLink  NotificationManager  PrayerAudioAssetResolver│
 ├────────────────────────────────────────────────────────┤
 │ Models                                                   │
 │   Prayer + PrayerText (Codable, from JSON)               │
@@ -56,7 +56,8 @@ how acceptance criterion *"invalid content does not crash"* is met.
 
 ### TodayContextEngine
 The heart of Today. Given a `TodayEngineInput` (prayers, time band, explicit
-moment, preferred deity, favourite moments, and a per-prayer
+moment, preferred deity, situations stored under the legacy
+`favoriteMoments` key, and a per-prayer
 `CompletionRecency` map) it returns a `TodayContext` (theme, copy, selected
 prayer, alternates). Pure function — no clocks, no globals — so every rule is
 deterministically unit-tested.
@@ -69,8 +70,8 @@ simple Ganesha invocation, the evening close) are exempt from the "yesterday"
 nudge so they return each day. Only `needsReview`/unreviewed prayers are
 hard-excluded. Scoring is documented in `PRD.md`.
 
-> **Favourite-moment weighting (implemented in Phase 3B).**
-> The favourite-moment signal is now separate from, and lighter than, the
+> **Prioritized-situation weighting (implemented in Phase 3B).**
+> The stored situation signal is separate from, and lighter than, the
 > time-band signal in `TodayContextEngine.score(_:input:)`:
 > - time-band inferred moment match: **+60**
 > - favourite-moment match: **+20**
@@ -81,7 +82,9 @@ hard-excluded. Scoring is documented in `PRD.md`.
 
 ### PrayerLibrary
 `@MainActor ObservableObject` holding all loaded prayers, with lookups by id,
-moment, and deity, and the set of moments/deities that actually have content.
+Moment, Intention, and Deity, and the available values that actually have
+reviewed content. A Moment is an anytime life situation; the clock ranks Today
+but does not lock discovery.
 
 ### AppCoordinator
 Single owner of navigation: which tab is selected, which prayer (if any) is in
@@ -90,32 +93,46 @@ notification taps both funnel through `handle(_:)`.
 
 ### AppSettings
 `UserDefaults`-backed preferences (onboarding flag, script preference, ishta
-devata, favourite moments, enabled reminders). Optionals/lists stored as
-raw-value strings.
+devata, situations to prioritize, enabled reminders, and each reminder's local
+hour/minute). Optionals/lists are stored as raw-value strings; reminder times
+are keyed by stable reminder slot.
 
 ### NotificationManager
 Thin wrapper over `UNUserNotificationCenter`. Three reminders with **stable
 identifiers** (`reminder.dawn`, `reminder.sunset`, `reminder.sleep`) so
-re-scheduling replaces rather than duplicates. Each carries a deep link in
-`userInfo`.
+re-scheduling an editable local time replaces rather than duplicates. Each
+carries a deep link in `userInfo`. Me commits a new time only after
+`UNUserNotificationCenter.add` succeeds and restores the prior value on error.
 
 ### PlayerController
-`@MainActor ObservableObject` driving a single session: a 0.1s timer advances
-progress; Listen mode plays bundled audio via `AVAudioPlayer` and **falls back
-to timed text** when no asset is found (`audioUnavailable` flag).
+`@MainActor ObservableObject` driving one explicit session. Chant is self-led
+aloud and Silent is inward reading/repetition; both expose Begin, pause/
+continue, and explicit Complete, while their timer is suggested pacing only.
+Listen is offered only when `PrayerAudioAssetResolver` finds the selected
+prayer's exact approved catalog asset. Normal builds do not enable synthetic or
+provisional audio. A Listen load/play failure leaves `hasStarted == false`,
+does not start a pretend timer, and cannot persist a completion.
+
+### PrayerAudioAssetResolver
+Resolves only `Audio/<prayer-id>.<supported-extension>` when the catalog name
+exactly equals the displayed `Prayer.id`. It rejects aliases, recursive/fuzzy
+matches, missing assets, and ambiguous duplicate formats. Normal Debug, device,
+Release, and TestFlight builds use the approved-catalog policy; an isolated
+compile condition is required for repository-only audio research.
 
 ## Persistence
 
 - **SwiftData** holds only user-generated state: `PrayerCompletion` and
   `FavoritePrayer`. The container falls back to in-memory if the on-disk store
-  can't be created, so the app always runs.
+  can't be created; a persistent banner discloses that degraded state.
 - **`prayers.json`** is immutable reference content — never written at runtime.
 - **`UserDefaults`** holds lightweight preferences.
 
 ## Project format
 
-The Xcode project uses **file-system synchronized groups** (`objectVersion 77`,
-Xcode 16+). Files added under `Anjali/` and `AnjaliTests/` are picked up
+The Xcode project uses **file-system synchronized groups** (`objectVersion 70`,
+Xcode 26+ for the current Apple upload baseline). Files added under `Anjali/`
+and `AnjaliTests/` are picked up
 automatically; `Info.plist` is excluded from the resources copy via a membership
 exception. The test target is a host-based unit test (`TEST_HOST` + `@testable
 import Anjali`).
@@ -130,6 +147,17 @@ Unit tests target the deterministic core:
   ranking, graded recency penalties, daily-anchor "yesterday" waiver, completion
   never excluding, needsReview/unreviewed exclusion, text-only prayers still
   selectable (Silent fallback), explicit-moment override, scoring order, alternates.
+- `PrayerAudioAssetResolverTests` and `PlayerControllerTests` — exact-ID policy,
+  hidden Listen behavior, no cross-prayer fallback, fail-closed lookup, explicit
+  self-led completion, and no pretend Listen completion.
 
 `Scripts/validate_prayers.py` validates `prayers.json` against the Swift enums
 (including `rotationPolicy`) and can gate CI.
+
+Current evidence is 75/75 unit/integration tests plus 4/4 current UI tests on
+each of large iPhone, compact iPhone, and iPad (12/12 responsive total),
+including the Om Namo Narayanaya regression. Manual physical-device and human
+accessibility matrices remain pending. Consumer readiness is governed by
+the [Daily-Use Consumer Product Plan](docs/DAILY_USE_PRODUCT_PLAN.md);
+TestFlight distribution execution remains in
+`docs/TESTFLIGHT_READINESS_BACKLOG.md`.

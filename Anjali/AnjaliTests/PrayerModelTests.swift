@@ -40,6 +40,21 @@ final class PrayerModelTests: XCTestCase {
         }
     }
 
+    func testListenIsOfferedWhenExactAudioIsAvailable() {
+        let p = makePrayer(modes: [.listen, .chant, .silent])
+        XCTAssertEqual(p.playableModes(audioAvailable: true), [.listen, .chant, .silent])
+    }
+
+    func testListenIsHiddenWhenExactAudioIsUnavailable() {
+        let p = makePrayer(modes: [.listen, .chant, .silent])
+        XCTAssertEqual(p.playableModes(audioAvailable: false), [.chant, .silent])
+    }
+
+    func testMissingAudioStillLeavesSilentFallback() {
+        let p = makePrayer(modes: [.listen])
+        XCTAssertEqual(p.playableModes(audioAvailable: false), [.silent])
+    }
+
     // MARK: Eligibility
 
     func testEligibilityIgnoresModesButRespectsReview() {

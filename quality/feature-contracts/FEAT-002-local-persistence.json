@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/pri8771/iOS_app_factory_rules/main/schemas/feature-contract.schema.json",
+  "id": "FEAT-002",
+  "name": "Local preferences and saved prayer persistence",
+  "status": "verification_pending",
+  "userOutcome": "Keep onboarding choices, preferences, completions, and saved prayers locally across relaunches, and understand when durable storage is unavailable.",
+  "entryPoints": [
+    "Onboarding",
+    "Me tab",
+    "Prayer completion",
+    "Save this prayer"
+  ],
+  "productionDataSource": "UserDefaults for preferences and the app's on-device SwiftData store for completions and favorites.",
+  "states": [
+    "persistent-store-available",
+    "persistent-store-unavailable",
+    "save-succeeded",
+    "save-failed",
+    "delete-succeeded",
+    "delete-failed",
+    "empty-saved-prayers",
+    "saved-prayers"
+  ],
+  "errorBehavior": "SwiftData mutations are committed before success behavior; failures roll back and show a recoverable message. If the durable store cannot open, a visible banner explains that changes will not survive closing the app.",
+  "duplicateProtectionRequired": true,
+  "persistenceRequired": true,
+  "layoutScenarios": [
+    "empty saved list",
+    "one saved prayer",
+    "many saved prayers",
+    "largest accessibility text"
+  ],
+  "accessibilityRequirements": [
+    "Storage failure banner has a complete VoiceOver label.",
+    "Saved prayer rows remain normal buttons with readable labels.",
+    "Delete remains available through standard List actions."
+  ],
+  "prohibitedBehavior": [
+    "Do not silently fall back to ephemeral storage.",
+    "Do not dismiss Save before the SwiftData operation succeeds.",
+    "Do not erase recoverable state after a failed delete.",
+    "Do not ship UI-test reset behavior in Release builds."
+  ],
+  "acceptanceTests": [
+    "AppSettingsTests",
+    "AnjaliFullLoopUITests.testSavedPrayerPersistsAcrossRelaunch",
+    "Release configuration compilation excludes the DEBUG-only reset hook"
+  ]
+}

@@ -44,6 +44,12 @@ final class PrayerLibrary: ObservableObject {
             .sorted { $0.sortOrder < $1.sortOrder }
     }
 
+    func prayers(for intention: Intention) -> [Prayer] {
+        reviewedPrayers
+            .filter { $0.intentions.contains(intention) }
+            .sorted { $0.sortOrder < $1.sortOrder }
+    }
+
     /// Moments that actually have at least one reviewed prayer.
     var availableMoments: [Moment] {
         Moment.allCases.filter { !prayers(for: $0).isEmpty }
@@ -52,5 +58,19 @@ final class PrayerLibrary: ObservableObject {
     /// Deities that actually have at least one reviewed prayer.
     var availableDeities: [Deity] {
         Deity.allCases.filter { !prayers(for: $0).isEmpty }
+    }
+
+    var availableIntentions: [Intention] {
+        Intention.allCases.filter { !prayers(for: $0).isEmpty }
+    }
+
+    /// Modes that can be a meaningful app-wide preference in this build.
+    /// Listen is included only when at least one reviewed prayer has an exact
+    /// resolvable recording; Chant and Silent always work from bundled text.
+    var availablePreferredModes: [PlayMode] {
+        let hasListeningPrayer = reviewedPrayers.contains { prayer in
+            PrayerAudioAssetResolver().resolve(prayer: prayer) != nil
+        }
+        return hasListeningPrayer ? [.listen, .chant, .silent] : [.chant, .silent]
     }
 }

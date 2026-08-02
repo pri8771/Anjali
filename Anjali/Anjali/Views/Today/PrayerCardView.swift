@@ -1,17 +1,32 @@
 import SwiftUI
 
 /// The single contextual prayer card on Today, with three actions:
-///  - Begin  (primary)   — open the player in the preferred mode
-///  - Silent (secondary) — open the player forced to Silent
-///  - Change (tertiary)  — swap to the next contextual prayer, no player
+///  - mode-specific primary action — open the preferred supported mode
+///  - Read silently             — open preselected to Silent
+///  - Another prayer            — show the next contextual suggestion
 struct PrayerCardView: View {
     let prayer: Prayer
     let theme: ThemePalette
-    /// Whether a "Change" action is available (more than one prayer today).
+    let scriptPreference: ScriptPreference
+    let preferredMode: PlayMode
+    let recommendationReason: String
+    /// Whether another contextual suggestion is available.
     let canChange: Bool
     let onBegin: () -> Void
     let onSilent: () -> Void
     let onChange: () -> Void
+
+    private var playerModes: [PlayMode] {
+        let audioAvailable = PrayerAudioAssetResolver().resolve(prayer: prayer) != nil
+        return prayer.playableModes(audioAvailable: audioAvailable)
+    }
+
+    private var primaryMode: PlayMode {
+        if playerModes.contains(preferredMode) {
+            return preferredMode
+        }
+        return playerModes.first ?? .silent
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -25,18 +40,26 @@ struct PrayerCardView: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
+                Label(recommendationReason, systemImage: "sparkles")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.accent)
+
                 Text(prayer.title)
                     .font(.system(.title2, design: .serif, weight: .semibold))
                     .foregroundStyle(theme.foreground)
-                Text(prayer.transliteration)
-                    .font(.callout)
-                    .italic()
-                    .foregroundStyle(theme.secondaryForeground)
+
+                PrayerTextView(
+                    prayer: prayer,
+                    scriptPreference: scriptPreference,
+                    theme: theme,
+                    primaryStyle: .title3
+                )
+                .frame(maxWidth: .infinity)
             }
 
             // Available modes for this prayer.
             HStack(spacing: 8) {
-                ForEach(prayer.playableModes) { mode in
+                ForEach(playerModes) { mode in
                     InfoChip(text: mode.displayName, systemImage: mode.symbolName, tint: theme.foreground.opacity(0.9))
                 }
             }
@@ -65,39 +88,44 @@ struct PrayerCardView: View {
         VStack(spacing: 12) {
             // Primary
             Button(action: onBegin) {
-                Text("Begin")
+                Text(primaryActionTitle)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(AnjaliPrimaryButtonStyle(theme: theme))
-            .accessibilityLabel("Begin prayer")
-            .accessibilityHint("Plays this prayer in your preferred mode")
+            .accessibilityLabel(primaryActionTitle)
+            .accessibilityHint(primaryMode.guidance)
 
-            // Secondary row: Silent + Change
-            HStack(spacing: 12) {
-                Button(action: onSilent) {
-                    Label("Silent", systemImage: "moon")
+            Button(action: onSilent) {
+                Label("Read silently", systemImage: "moon")
+                    .frame(maxWidth: .infinity)
+            }
+            .secondaryCardAction(theme: theme)
+            .accessibilityLabel("Begin in silent mode")
+            .accessibilityHint("Read or repeat the prayer inwardly; no sound plays")
+
+            if canChange {
+                Button(action: onChange) {
+                    Label("Another prayer", systemImage: "arrow.triangle.2.circlepath")
                         .frame(maxWidth: .infinity)
                 }
                 .secondaryCardAction(theme: theme)
-                .accessibilityLabel("Begin in silent mode")
-                .accessibilityHint("Plays this prayer as text only, no sound")
-
-                if canChange {
-                    Button(action: onChange) {
-                        Label("Change", systemImage: "arrow.triangle.2.circlepath")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .secondaryCardAction(theme: theme)
-                    .accessibilityLabel("Change prayer")
-                    .accessibilityHint("Shows a different prayer for this moment")
-                }
+                .accessibilityLabel("Another prayer")
+                .accessibilityHint("Shows a different prayer for right now")
             }
+        }
+    }
+
+    private var primaryActionTitle: String {
+        switch primaryMode {
+        case .listen: return "Listen now"
+        case .chant: return "Begin chanting"
+        case .silent: return "Read silently"
         }
     }
 }
 
 private extension View {
-    /// Smaller, secondary styling for the Silent / Change actions.
+    /// Smaller, secondary styling for the quiet / alternate actions.
     func secondaryCardAction(theme: ThemePalette) -> some View {
         self
             .font(.subheadline.weight(.medium))

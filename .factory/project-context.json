@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/pri8771/iOS_app_factory_rules/main/schemas/project-context.schema.json",
+  "projectName": "Anjali",
+  "projectType": "existing",
+  "lifecycleStatus": "verification_pending",
+  "platforms": [
+    "ios"
+  ],
+  "frameworks": [
+    "SwiftUI",
+    "SwiftData",
+    "AVFoundation",
+    "UserNotifications"
+  ],
+  "registeredAt": "2026-07-29",
+  "existingCodeBaselineRequired": true,
+  "constraints": {
+    "localFirst": true,
+    "backendAllowed": false,
+    "thirdPartyDependenciesAllowed": false
+  },
+  "agentEntryPoints": {
+    "generic": "AGENTS.md",
+    "claudeCode": "CLAUDE.md",
+    "gemini": "GEMINI.md",
+    "cursor": ".cursor/rules/app-factory.mdc",
+    "githubCopilot": ".github/copilot-instructions.md",
+    "canonicalLocalRules": ".factory/AGENTS.factory.md"
+  },
+  "requiredReading": [
+    "AGENTS.md",
+    ".factory/project-context.json",
+    ".factory/standard-lock.json",
+    ".factory/AGENTS.factory.md",
+    "quality/quality-manifest.json",
+    "quality/feature-contracts",
+    "docs/STATUS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/FEATURES.md",
+    "docs/BUGS.md",
+    "docs/DECISIONS.md",
+    "docs/TEST_PLAN.md",
+    "docs/RELEASE_CHECKLIST.md",
+    "docs/TESTFLIGHT_READINESS_BACKLOG.md",
+    "docs/testflight-tasks",
+    "AppStore/testflight_metadata.md",
+    "LAUNCH_READINESS.md"
+  ]
+}

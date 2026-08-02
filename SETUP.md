@@ -1,14 +1,13 @@
 # Anjali — Local Build & Validation Guide
 
-This is the handoff guide for building and validating Anjali on a Mac. The CI
-agent that authored the code **cannot compile Swift**, so this document captures
-everything needed to validate the build locally.
+This is the handoff guide for building and validating Anjali on a Mac. Current
+verification results are recorded in `docs/STATUS.md` and `docs/TEST_PLAN.md`.
 
 ## Prerequisites
 
-- **macOS** with **Xcode 16 or newer** (the project uses file-system
-  synchronized groups, `objectVersion 77`, which requires Xcode 16+).
-- An **iOS 17+ simulator** (e.g. iPhone 15). Install via
+- **macOS** with **Xcode 26 or newer** for current App Store Connect uploads
+  (the project uses file-system synchronized groups, `objectVersion 70`).
+- An **iOS 17+ simulator**. Install via
   *Xcode → Settings → Components* if missing.
 - Command Line Tools selected: `sudo xcode-select -s /Applications/Xcode.app`.
 
@@ -27,7 +26,7 @@ everything needed to validate the build locally.
 
 > **About "Swift version".** `SWIFT_VERSION` is the *language mode*, whose valid
 > values are `4.0 / 4.2 / 5.0 / 6.0` — there is no "5.9". The compiler is
-> whatever ships with Xcode 16 (Swift 6.x). We deliberately stay in **5.0
+> whatever ships with Xcode 26 (Swift 6.x). We deliberately stay in **5.0
 > language mode**: switching to 6.0 turns on strict concurrency checking, which
 > would require re-auditing the `@MainActor` annotations before it builds
 > cleanly. 5.0 mode compiles on the modern toolchain today.
@@ -63,11 +62,11 @@ project, then runs a clean build followed by the tests:
 ./Scripts/build.sh
 ```
 
-**Override the simulator** with the `DESTINATION` env var (default is
-`platform=iOS Simulator,name=iPhone 15`):
+**Override the simulator** with the `DESTINATION` env var. When omitted, the
+script selects the first available iPhone simulator:
 
 ```bash
-DESTINATION="platform=iOS Simulator,name=iPhone 16" ./Scripts/build.sh
+DESTINATION="platform=iOS Simulator,id=<SIMULATOR-UDID>" ./Scripts/build.sh
 ```
 
 **Logs.** The script writes the *full* (untruncated) logs to:
@@ -83,15 +82,16 @@ Or run the commands directly:
 ```bash
 # Clean build
 xcodebuild -project Anjali/Anjali.xcodeproj -scheme Anjali \
-  -destination 'platform=iOS Simulator,name=iPhone 15' clean build
+  -configuration Release \
+  -destination 'platform=iOS Simulator,id=<SIMULATOR-UDID>' clean build
 
 # Unit tests
 xcodebuild -project Anjali/Anjali.xcodeproj -scheme Anjali \
-  -destination 'platform=iOS Simulator,name=iPhone 15' test
+  -destination 'platform=iOS Simulator,id=<SIMULATOR-UDID>' test
 ```
 
-If `iPhone 15` is not installed, list available simulators with
-`xcrun simctl list devices available` and substitute a name.
+List available simulators with `xcrun simctl list devices available` and use an
+installed iPhone UDID.
 
 ### Content validation (no Xcode needed)
 
@@ -104,12 +104,9 @@ python3 Scripts/export_catalog.py     # regenerates Content/ CSVs from the JSON
 
 - **Build:** the `xcodebuild … build` run ends with **`** BUILD SUCCEEDED **`**.
 - **Tests:** the `xcodebuild … test` run ends with **`** TEST SUCCEEDED **`**.
-  Expect the three suites to pass:
-  - `TimeBandResolverTests` (five-band boundaries + full-day coverage)
-  - `PrayerDataLoaderTests` (loads seed, validates fields, skips malformed,
-    empty-modes is valid)
-  - `TodayContextEngineTests` (selection, deity/mode ranking, recency,
-    daily-anchor waiver, exclusions, alternates)
+  The current matrix contains 58 unit/integration tests and 4 UI tests; exact
+  coverage and the latest executed results are in `docs/TEST_PLAN.md` and
+  `quality/evidence/`.
 - **Run:** the app launches into onboarding on a fresh simulator.
 
 ## Smoke test checklist
@@ -189,9 +186,16 @@ xcrun simctl openurl booted anjali://prayer/ganesha-gam
 
 ## Known follow-ups before TestFlight
 
-- **Favourite-moment scoring needs tuning** (see `ARCHITECTURE.md`): a favourite
-  moment currently earns the full inferred-moment bonus, equal to a time-band
-  match. It should likely be weighted lighter than the time-band signal.
-- **App icon** is a placeholder (empty `AppIcon` set) — add artwork before any
-  external build.
-- **Audio** assets are not bundled in the MVP; Listen falls back to timed text.
+- **Named content sign-off:** structural validation is green, but 0/22 prayers
+  have a named cultural/theological reviewer/date. The release sign-off gate
+  correctly blocks.
+- **Human/device QA:** VoiceOver, contrast, Reduce Motion, iPad layout,
+  notification delivery/tap, offline, deep-link, and persistence checks need
+  recorded real-device evidence.
+- **Distribution:** Apple identity, public privacy/contact values, unique build
+  number, signed archive, processing, internal TestFlight, and Beta App Review
+  remain open.
+- **Audio:** provisional files are repository-only and excluded from the app;
+  Listen truthfully falls back to timed text. Do not re-enable them.
+
+Execute the canonical tasks in `docs/TESTFLIGHT_READINESS_BACKLOG.md`.

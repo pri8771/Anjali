@@ -3,27 +3,35 @@ import AVFoundation
 import Combine
 
 /// Drives a single prayer session: tracks elapsed time and progress, and plays
-/// bundled audio in Listen mode. Audio is optional and local only — if the
-/// asset is missing, Listen degrades gracefully to a timed text experience.
+/// an approved bundled recording in Listen mode. If playback cannot begin,
+/// Listen fails visibly and never becomes a pretend timed-text session.
 @MainActor
 final class PlayerController: ObservableObject {
     @Published private(set) var progress: Double = 0   // 0...1
     @Published private(set) var isRunning = false
     @Published private(set) var isFinished = false
+    @Published private(set) var hasStarted = false
+    @Published private(set) var elapsed: TimeInterval = 0
     /// True when Listen was requested but no audio could be loaded.
     @Published private(set) var audioUnavailable = false
 
     private let prayer: Prayer
+    private let audioAssetResolver: PrayerAudioAssetResolver
     private var mode: PlayMode
     private var audioPlayer: AVAudioPlayer?
     private var timer: AnyCancellable?
-    private var elapsed: TimeInterval = 0
 
     private var duration: TimeInterval { max(1, TimeInterval(prayer.durationSeconds)) }
+    var remaining: TimeInterval { max(0, duration - elapsed) }
 
-    init(prayer: Prayer, mode: PlayMode) {
+    init(
+        prayer: Prayer,
+        mode: PlayMode,
+        audioAssetResolver: PrayerAudioAssetResolver = PrayerAudioAssetResolver()
+    ) {
         self.prayer = prayer
         self.mode = mode
+        self.audioAssetResolver = audioAssetResolver
     }
 
     /// Change mode mid-session (resets progress).
@@ -38,17 +46,24 @@ final class PlayerController: ObservableObject {
         progress = 0
         elapsed = 0
         isFinished = false
+        hasStarted = false
         audioUnavailable = false
     }
 
     func start() {
         guard !isRunning else { return }
         if isFinished { reset() }
-        isRunning = true
 
-        if mode == .listen, prepareAudio() {
-            audioPlayer?.play()
+        if mode == .listen {
+            guard prepareAudio(), audioPlayer?.play() == true else {
+                isRunning = false
+                audioUnavailable = true
+                return
+            }
         }
+
+        hasStarted = true
+        isRunning = true
         startTimer()
     }
 
@@ -65,8 +80,9 @@ final class PlayerController: ObservableObject {
         audioPlayer = nil
     }
 
-    /// Mark the session complete immediately (e.g. the Silent "Complete" CTA).
+    /// Mark a self-led session complete after the user has explicitly begun.
     func completeNow() {
+        guard hasStarted, !isFinished else { return }
         finish()
     }
 
@@ -88,7 +104,9 @@ final class PlayerController: ObservableObject {
         } else {
             elapsed += 0.1
             progress = min(1, elapsed / duration)
-            if progress >= 1 { finish() }
+            // Chant and Silent are self-led practices. The target duration is
+            // gentle pacing feedback, not permission to claim the person has
+            // finished; completion is always an explicit action.
         }
     }
 
@@ -101,20 +119,10 @@ final class PlayerController: ObservableObject {
         audioPlayer?.stop()
     }
 
-    /// Attempt to load the prayer's bundled audio. Returns false (and flags
-    /// `audioUnavailable`) when no asset exists, so the caller can fall back.
+    /// Attempt to load the prayer's approved bundled audio. Returns false and
+    /// flags `audioUnavailable` when playback cannot begin.
     private func prepareAudio() -> Bool {
-        guard let name = prayer.audioAssetName, !name.isEmpty else {
-            audioUnavailable = true
-            return false
-        }
-        let candidates = ["m4a", "mp3", "caf", "wav"]
-        let url = candidates
-            .lazy
-            .compactMap { Bundle.main.url(forResource: name, withExtension: $0) }
-            .first
-
-        guard let url else {
+        guard let url = audioAssetResolver.resolve(prayer: prayer) else {
             audioUnavailable = true
             return false
         }

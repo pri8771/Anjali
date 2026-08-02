@@ -21,10 +21,8 @@ final class AnjaliFullLoopUITests: XCTestCase {
     /// dependency) → tap "Complete" → land on the completion screen.
     func testFullLoop_onboardingThroughCompletion() throws {
         let app = XCUIApplication()
-        // See `AnjaliApp.resetStateIfRequestedForUITesting()`: this wipes the
-        // persisted UserDefaults domain at launch, rather than overriding a
-        // single key via `-key value` (which would fight with the app's own
-        // write of `hasCompletedOnboarding = true` when onboarding finishes).
+        // The debug-only UI-test hook wipes UserDefaults and SwiftData rather
+        // than overriding a single preference via `-key value`.
         app.launchArguments = ["-uiTestReset"]
         app.launch()
 
@@ -48,6 +46,10 @@ final class AnjaliFullLoopUITests: XCTestCase {
         silentButton.tap()
 
         // MARK: Prayer player (Silent layout)
+        let beginSilentButton = app.buttons["Begin silent prayer"]
+        XCTAssertTrue(beginSilentButton.waitForExistence(timeout: 10), "Silent player did not appear")
+        beginSilentButton.tap()
+
         let completeButton = app.buttons["Complete prayer"]
         XCTAssertTrue(completeButton.waitForExistence(timeout: 10), "Silent player did not appear")
         completeButton.tap()
@@ -62,21 +64,11 @@ final class AnjaliFullLoopUITests: XCTestCase {
         XCTAssertTrue(silentButton.waitForExistence(timeout: 10), "Did not return to Today after completion")
     }
 
-    /// Covers the 2 of 22 prayers that ship with no bundled audio
-    /// (`vishnu-shantakaram` / "Shantakaram Bhujagashayanam" and
-    /// `hanuman-manojavam` / "Manojavam Marutatulyavegam" — see
-    /// `Anjali/Resources/prayers.json`, `audioAssetName: null`). Both still
-    /// list "listen" as an available mode, so opening either one in its
-    /// default (Listen) mode is the real-world path a user hits.
-    ///
-    /// `PlayerController.prepareAudio()` is expected to fail closed: no
-    /// asset found → `audioUnavailable = true` → the timer still drives
-    /// progress from wall-clock time instead of audio playback time, and the
-    /// UI surfaces "Audio isn't available — follow along in silence."
-    /// instead of crashing or hanging. This test drives the real bundled
-    /// prayer content (not a fixture) through Moments → Deity → Vishnu to
-    /// confirm that on a real device/simulator, not just by reading the code.
-    func testMissingAudioPrayerFallsBackGracefully() throws {
+    /// Reproduces the reported Om Namo Narayanaya path. With no approved human
+    /// recording in the bundle, the player must not promise Listen or open a
+    /// blank pseudo-audio session. It must show both prayer scripts, explain
+    /// self-led Chant, and provide visible running feedback.
+    func testTextOnlyPrayerOffersClearSelfLedChant() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-uiTestReset"]
         app.launch()
@@ -89,13 +81,15 @@ final class AnjaliFullLoopUITests: XCTestCase {
         XCTAssertTrue(enterButton.waitForExistence(timeout: 10))
         enterButton.tap()
 
-        // Today → Moments tab.
-        let momentsTab = app.buttons["Moments"]
-        XCTAssertTrue(momentsTab.waitForExistence(timeout: 15))
-        momentsTab.tap()
+        // Today → Find tab.
+        // iPadOS floating tab bars expose a nested duplicate accessibility
+        // node for each item; firstMatch is stable on both iPhone and iPad.
+        let findTab = app.buttons["Find"].firstMatch
+        XCTAssertTrue(findTab.waitForExistence(timeout: 15))
+        findTab.tap()
 
         // Switch the browse picker from "Moment" to "Deity", then drill into
-        // Vishnu, whose catalog includes the audio-less Shantakaram prayer.
+        // Vishnu and choose the prayer from the user's report.
         let deitySegment = app.buttons["Deity"]
         XCTAssertTrue(deitySegment.waitForExistence(timeout: 10))
         deitySegment.tap()
@@ -104,26 +98,125 @@ final class AnjaliFullLoopUITests: XCTestCase {
         XCTAssertTrue(vishnuRow.waitForExistence(timeout: 10))
         vishnuRow.tap()
 
-        let shantakaramPredicate = NSPredicate(format: "label CONTAINS[c] %@", "Shantakaram")
-        let shantakaramRow = app.buttons.containing(shantakaramPredicate).firstMatch
-        XCTAssertTrue(shantakaramRow.waitForExistence(timeout: 10), "Shantakaram prayer row not found under Vishnu")
-        shantakaramRow.tap()
+        let narayanaPredicate = NSPredicate(format: "label CONTAINS[c] %@", "Om Namo Narayanaya")
+        let narayanaRow = app.buttons.containing(narayanaPredicate).firstMatch
+        XCTAssertTrue(narayanaRow.waitForExistence(timeout: 10), "Om Namo Narayanaya was not found under Vishnu")
+        narayanaRow.tap()
 
-        // Opens in Listen mode by default (Prayer.playableModes.first for
-        // this prayer's availableModes ["listen", "chant", "silent"]).
-        // Starting playback should hit the no-audio path immediately.
-        let beginButton = app.buttons["Begin prayer"]
-        XCTAssertTrue(beginButton.waitForExistence(timeout: 10), "Prayer player did not appear")
-        beginButton.tap()
-
-        // Graceful degradation: an explicit, non-crashing fallback message,
-        // and the timer keeps running (Begin flips to Pause) driven by
-        // wall-clock time rather than a (nonexistent) audio track.
+        XCTAssertTrue(app.buttons["Chant mode"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["Listen mode"].exists, "Listen must not appear without exact approved audio")
+        XCTAssertTrue(app.staticTexts["ॐ नमो नारायणाय"].exists, "Devanagari prayer text is missing")
+        XCTAssertTrue(app.staticTexts["Oṃ Namo Nārāyaṇāya"].exists, "Transliteration is missing")
         XCTAssertTrue(
-            app.staticTexts["Audio isn't available — follow along in silence."].waitForExistence(timeout: 5),
-            "Missing-audio fallback message did not appear — Listen mode may be failing open instead of degrading"
+            app.staticTexts["Recite aloud at your own pace. No recording plays in this mode."].exists,
+            "Chant mode does not explain its no-audio behavior"
         )
-        let pauseButton = app.buttons["Pause"]
-        XCTAssertTrue(pauseButton.waitForExistence(timeout: 5), "Playback did not start despite missing audio")
+
+        let beginButton = app.buttons["Begin chanting"]
+        XCTAssertTrue(beginButton.waitForExistence(timeout: 10), "Chant control did not appear")
+        beginButton.tap()
+        XCTAssertTrue(
+            app.buttons["Pause chanting"].waitForExistence(timeout: 5),
+            "Chant session did not expose visible running feedback"
+        )
+    }
+
+    /// A saved prayer must survive process termination and relaunch. The first
+    /// launch resets both UserDefaults and SwiftData; the second intentionally
+    /// does not, so this exercises the production persistence path.
+    func testSavedPrayerPersistsAcrossRelaunch() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTestReset"]
+        app.launch()
+
+        app.buttons["Continue"].tap()
+        let enterButton = app.buttons["Enter"]
+        XCTAssertTrue(enterButton.waitForExistence(timeout: 10))
+        enterButton.tap()
+
+        let findTab = app.buttons["Find"].firstMatch
+        XCTAssertTrue(findTab.waitForExistence(timeout: 15))
+        findTab.tap()
+        app.buttons["Deity"].tap()
+        let vishnuRow = app.buttons["Vishnu"]
+        XCTAssertTrue(vishnuRow.waitForExistence(timeout: 10))
+        vishnuRow.tap()
+
+        let predicate = NSPredicate(format: "label CONTAINS[c] %@", "Shantakaram")
+        let prayerRow = app.buttons.containing(predicate).firstMatch
+        XCTAssertTrue(prayerRow.waitForExistence(timeout: 10))
+        prayerRow.tap()
+
+        let silentMode = app.buttons["Silent mode"]
+        XCTAssertTrue(silentMode.waitForExistence(timeout: 10))
+        silentMode.tap()
+        let beginSilentButton = app.buttons["Begin silent prayer"]
+        XCTAssertTrue(beginSilentButton.waitForExistence(timeout: 10))
+        beginSilentButton.tap()
+        let completeButton = app.buttons["Complete prayer"]
+        XCTAssertTrue(completeButton.waitForExistence(timeout: 10))
+        completeButton.tap()
+
+        let saveButton = app.buttons["Save this prayer"]
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 10))
+        saveButton.tap()
+
+        let meTab = app.buttons["Me"].firstMatch
+        XCTAssertTrue(meTab.waitForExistence(timeout: 10))
+        meTab.tap()
+        let savedPrayer = app.descendants(matching: .any)["savedPrayer.vishnu-shantakaram"]
+        XCTAssertTrue(
+            reveal(savedPrayer, in: app),
+            "Saved prayer was not present after a successful save"
+        )
+
+        app.terminate()
+        app.launchArguments = []
+        app.launch()
+        let relaunchedMeTab = app.buttons["Me"].firstMatch
+        XCTAssertTrue(relaunchedMeTab.waitForExistence(timeout: 10))
+        relaunchedMeTab.tap()
+        XCTAssertTrue(
+            reveal(
+                app.descendants(matching: .any)["savedPrayer.vishnu-shantakaram"],
+                in: app
+            ),
+            "Saved prayer did not survive relaunch"
+        )
+    }
+
+    /// Ensures the primary first-run path remains reachable at the largest
+    /// accessibility text size instead of clipping its actions off-screen.
+    func testPrimaryPathAtLargestAccessibilityText() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestReset",
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge"
+        ]
+        app.launch()
+
+        let continueButton = app.buttons["Continue"]
+        XCTAssertTrue(continueButton.waitForExistence(timeout: 10))
+        continueButton.tap()
+
+        let enterButton = app.buttons["Enter"]
+        XCTAssertTrue(enterButton.waitForExistence(timeout: 10))
+        enterButton.tap()
+
+        XCTAssertTrue(
+            app.buttons["Begin in silent mode"].waitForExistence(timeout: 15),
+            "Today action was not reachable at the largest accessibility text size"
+        )
+    }
+
+    private func reveal(_ element: XCUIElement, in app: XCUIApplication) -> Bool {
+        for _ in 0..<6 {
+            if element.waitForExistence(timeout: 1) {
+                return true
+            }
+            app.swipeUp()
+        }
+        return element.exists
     }
 }

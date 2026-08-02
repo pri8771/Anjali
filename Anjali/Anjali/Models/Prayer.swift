@@ -99,12 +99,21 @@ struct Prayer: Identifiable, Codable, Hashable {
     /// The modes a user can actually start. Every prayer is always completable
     /// in Silent (read-only), so Silent is guaranteed to be present even if it
     /// wasn't listed — and a prayer with no listed modes still degrades to
-    /// Silent rather than blocking. Listen falls back to timed text when audio
-    /// is absent.
+    /// Silent rather than blocking. Listen is filtered by the overload below
+    /// when an exact approved recording is absent.
     var playableModes: [PlayMode] {
         var modes = availableModes
         if !modes.contains(.silent) { modes.append(.silent) }
         return modes
+    }
+
+    /// Modes that should be offered by the player for the current bundle.
+    /// Listen is an audio promise, so it is hidden when the exact prayer asset
+    /// cannot be resolved. Chant and Silent remain local, text-led experiences.
+    func playableModes(audioAvailable: Bool) -> [PlayMode] {
+        playableModes.filter { mode in
+            mode != .listen || audioAvailable
+        }
     }
 
     /// A prayer is eligible to be shown when it has been reviewed and does not

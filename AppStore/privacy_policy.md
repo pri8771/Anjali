@@ -26,8 +26,8 @@ So the app can work and remember your preferences, some information is stored
 **locally on your device only**, and never leaves it:
 
 - **Preferences** (e.g. script choice, preferred prayer mode, chosen ishta
-  devata, favourite moments, whether reminders are on) — stored in the system
-  user-defaults on your device.
+  devata, situations to prioritize, reminder choices and times) — stored in
+  the system user-defaults on your device.
 - **Your activity within the app** (prayers you complete and prayers you save)
   — stored locally using Apple's on-device SwiftData storage.
 
@@ -68,5 +68,5 @@ explained and, where appropriate, made opt-in.
 
 ## Contact
 
-Questions about this policy can be sent to the support address listed on our
-support page: `https://anjali.app/support`.
+Questions about this policy can be sent through the support URL published in
+Anjali's App Store listing. That URL must be live before external distribution.

@@ -45,6 +45,7 @@ Anjali is provided "as is" without warranty. We are not liable for:
 We may update these Terms with app updates. Continued use indicates acceptance.
 
 ## Contact
-For questions: [contact email to be provided]
+For questions, use the support URL published in Anjali's App Store listing.
+That URL must be live before external distribution.
 
 **Effective Date:** June 28, 2026

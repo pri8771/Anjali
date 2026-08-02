@@ -1,5 +1,8 @@
 # Static Audit — Phase 4 (no-compiler review)
 
+> Historical source-only review. For current compiled/tested status, use
+> `docs/STATUS.md` and `docs/TEST_PLAN.md`.
+
 A manual "compile-in-my-head" pass over all Swift sources, since this
 environment has no Swift toolchain. Scope: catch the things a compiler/linker
 would reject (missing imports, async/actor mismatches, protocol-conformance

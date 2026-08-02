@@ -1,92 +1,149 @@
-# Anjali — Beta Testing Plan
+# Anjali Beta Testing Plan
 
-## Overview
-Beta testing for Anjali aims to validate app functionality, performance, cultural sensitivity, and user experience with a diverse set of Hindu users before App Store release.
+This plan describes testing after a build reaches TestFlight. The canonical
+task definitions, dependencies, acceptance criteria, and evidence requirements
+are in `../docs/TESTFLIGHT_READINESS_BACKLOG.md`. Consumer-product behavior and
+its P0/P1 gates are canonical in
+[`../docs/DAILY_USE_PRODUCT_PLAN.md`](../docs/DAILY_USE_PRODUCT_PLAN.md).
 
-## Beta Testing Phases
+## Current pre-beta state
 
-### Phase 1: Internal Testing (Week 1-2)
-**Participants:** Core team + 5-10 cultural advisors
-**Focus:**
-- Core functionality validation (Today card, Prayer Player, Moments)
-- Prayer content accuracy and cultural sensitivity review
-- Localization and translation verification
-- Performance testing on iOS 17+ devices
-- Offline functionality validation
+- Structural content validation passes 22/22 records.
+- 75/75 unit/integration tests and the current responsive UI matrix pass:
+  4/4 each on large iPhone, compact iPhone, and iPad (12/12 total), including
+  the Om Namo Narayanaya regression.
+- Named cultural/theological sign-off remains 0/22.
+- Manual physical-device, notification-delivery, accessibility, and
+  moderated-consumer matrices remain pending.
 
-### Phase 2: Closed Beta (Week 3-4)
-**Participants:** 20-30 Hindu practitioners from diverse backgrounds
-**Distribution:** TestFlight
-**Focus:**
-- Real-world usage patterns
-- Prayer content resonance and relevance
-- UI/UX improvements from varied user perspectives
-- Bug identification and reporting
-- Device compatibility testing
+External TestFlight is blocked. The automated checks above are implementation
+evidence, not approval to invite consumers.
 
-### Phase 3: Open Beta (Week 5-6)
-**Participants:** 50-100 TestFlight testers
-**Focus:**
-- Large-scale usage validation
-- Performance under load
-- Final bug fixes
-- User feedback consolidation
+## Principles
 
-## Testing Criteria
+- Repository evidence is authoritative; TestFlight, Jira, and Notion mirror it.
+- No result is pre-checked. Record Pass, Fail, or Not Applicable with a reason.
+- Normal builds contain no provisional generated/TTS audio and hide Listen when
+  no exact approved human recording is bundled.
+- Chant is self-led aloud and plays no recording. Silent is inward reading or
+  repetition and plays no sound. The complete prayer text and meaning remain
+  visible in both.
+- No analytics will be added just to measure beta participation or retention.
+- TestFlight feedback, a monitored email, interviews, and Apple crash
+  diagnostics are the feedback channels. There is no in-app rating form.
+- Sacred-text accuracy, privacy mismatch, crashes/data loss, and inaccessible
+  primary paths are stop-ship conditions.
 
-### Functional Requirements
-- ✓ Today card displays with correct time-based prayer
-- ✓ Prayer Player modes (Listen/Chant/Silent) work properly
-- ✓ Moments browsing by time and deity functions
-- ✓ Favorites saving and persistence works offline
-- ✓ Settings storage and retrieval correct
-- ✓ No crashes on app launch or transitions
-- ✓ App respects device Dark Mode setting
-- ✓ Proper handling of orientation changes
+## Stage 1 — Internal TestFlight
 
-### Performance Benchmarks
-- Launch time: < 2 seconds
-- Prayer display load: < 500ms
-- Memory usage: < 100MB at any time
-- Battery usage: minimal for offline operation
-- No noticeable lag in scrolling/transitions
+**Entry:** TF-009 upload/processing is complete.
+**Participants:** smallest useful internal group of engineering, QA, product,
+and cultural advisors. Apple permits up to 100 App Store Connect users, but
+Anjali does not need to approach that limit.
+**Duration:** evidence-driven; no fixed week promise.
 
-### Cultural Sensitivity
-- Prayer content accuracy verified by Sanskrit scholars
-- Deity representations respectful and accurate
-- No cultural appropriation or misrepresentation
-- Content governance reflects Hindu traditions
+### Goals
 
-## Feedback Collection
+- Prove the processed TestFlight binary installs on real iPhone and iPad.
+- Exercise the complete functional, offline, notification, persistence,
+  accessibility, and layout matrix in
+  `../docs/templates/TESTFLIGHT_QA_EVIDENCE.md`.
+- Verify Moment, Intention, and Deity discovery; a Moment is an anytime
+  situation and is never clock-locked.
+- Verify user-edited local reminder times persist, replace the stable request
+  without duplicates, deliver, and deep-link correctly.
+- Collect cultural-advisor feedback while TF-001 review is finalized.
+- Confirm the shipped build contains no provisional audio and makes no
+  unsupported network/privacy claim.
 
-### Methods
-- TestFlight feedback forms
-- Email surveys
-- In-app feedback (post-prayer rating)
-- Direct interviews with 10-15 key testers
+### Exit
 
-### Key Questions
-1. Does the app feel authentic to your spiritual practice?
-2. Are there prayers or moments you'd like to see?
-3. What could make the UI more intuitive?
-4. Are there any crashes or bugs?
-5. How does this compare to other prayer apps you've used?
+TF-010 has named go/no-go approval, no open P0 or blocking P1, and all required
+manual rows have evidence.
 
-## Success Metrics
-- ≥ 95% test pass rate for functional criteria
-- ≥ 4.0/5.0 rating for cultural authenticity
-- ≥ 4.2/5.0 rating for user experience
-- Zero critical bugs post-public launch
-- ≥ 90% retention of beta testers
+## Stage 2 — Controlled external beta
 
-## Timeline
-- **Week 1-2:** Internal testing and fixes
-- **Week 3-4:** Closed beta and iteration
-- **Week 5-6:** Open beta, final validation
-- **Week 7:** Submission to App Store
+**Entry:** TF-001, TF-003, TF-004, TF-010, and TF-011 are complete; all P0 and
+release-blocking P1 items in `DAILY_USE_PRODUCT_PLAN.md` are verified; named
+content review is 22/22.
+**Participants:** 20–30 invited practitioners representing varied devices,
+accessibility needs, and Hindu traditions.
+**Distribution:** email invitation to a closed external group. Do not start
+with a public link.
 
-## Post-Launch Monitoring
-- Monitor crash logs for first 2 weeks
-- Track user ratings and reviews
-- Respond to user feedback within 48 hours
-- Plan updates based on feedback patterns
+### Goals
+
+- Validate that the one-prayer flow is understandable and respectful.
+- Find prayer-source, transliteration, meaning, context, or tone concerns.
+- Validate reminders, deep links, airplane-mode operation, persistence, dark
+  mode, large text, and VoiceOver in real-world use.
+- Identify crashes and confusing or unreachable states.
+
+### Tester questions
+
+1. Did any prayer text, transliteration, meaning, source, deity association, or
+   presentation feel inaccurate or disrespectful? Identify the prayer/field.
+2. Could you understand and finish the Today → prayer → completion flow?
+3. Before beginning, was it clear that Chant means reciting aloud yourself with
+   no app recording and Silent means inward reading with no sound?
+4. Could you always see the complete selected prayer text and meaning?
+5. Did Moment, Intention, and Deity feel distinct? Could you open Dawn outside
+   dawn without thinking it was restricted?
+6. Did saved prayers and settings remain after relaunch?
+7. Could you change a reminder time, and did it behave as expected after grant,
+   denial, delivery, and relaunch?
+8. Did the app work in airplane mode?
+9. Was anything clipped, low contrast, difficult with VoiceOver/large text, or
+   confusing on iPad?
+10. Did you experience a crash, lost data, or a stuck screen? Include device,
+   OS, build, reproduction steps, and safe screenshots/video.
+
+### Stop conditions
+
+Pause invitations and return to TF-005 for any:
+
+- credible sacred-text/content error or cultural harm;
+- privacy behavior that differs from “Data Not Collected”/offline claims;
+- reproducible crash, data loss, unusable primary path, or major accessibility
+  barrier;
+- repeated notification state that claims success when scheduling failed;
+- accidental provisional audio, a visible Listen affordance without an approved
+  recording, or unexpected network/SDK inclusion.
+
+### Exit
+
+TF-012 records invited and installed counts available from TestFlight,
+feedback-response count, crash/defect totals by severity, disposition of every
+content concern, and named product/QA/content/release go/no-go.
+
+## Stage 3 — Optional expanded external beta
+
+Only expand after the controlled cohort exits green. Choose a second invited
+cohort or a limited public link with explicit device/OS criteria and tester
+limit. Apple allows external groups up to 10,000 testers, but that limit is not
+a target. This offline app has no server-load hypothesis to validate.
+
+Expansion must have a named objective such as broader iOS 17 device coverage or
+accessibility representation. If no new objective exists, proceed to App Store
+submission work instead of collecting vanity participation.
+
+## Operational cadence
+
+- Review TestFlight crash/feedback queues each business day during active beta.
+- Acknowledge direct feedback within two business days.
+- Put canonical defects and decisions in repository docs/issues first.
+- Metadata-only corrections update `testflight_metadata.md` and the App Store
+  Connect copy. Binary corrections require a new unique build and TF-005 onward.
+- Record each build's 90-day expiration date and stop unsafe/expired builds.
+
+## Success criteria
+
+There is no fabricated percentage, star-rating, launch-time, memory, or
+retention target. A beta succeeds when:
+
+- all release acceptance criteria in TF-010/TF-012 are evidenced;
+- no open P0 or release-blocking P1 remains;
+- every content concern has named human disposition;
+- no unexplained TestFlight crash cluster remains;
+- the final privacy/content/feature description matches the binary;
+- product, QA, content, and release owners record go.

@@ -12,6 +12,10 @@ final class PrayerDataLoaderTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(loaded.count, 20, "Expected the full seed set")
         XCTAssertTrue(loaded.allSatisfy { $0.isReviewed }, "Seed prayers must be reviewed")
         XCTAssertTrue(loaded.allSatisfy { !$0.needsReview }, "Seed prayers must not need review")
+        XCTAssertTrue(
+            loaded.allSatisfy { $0.audioAssetName == $0.id },
+            "Each TestFlight pilot recording must name its exact prayer ID"
+        )
     }
 
     func testValidatesRequiredFields() {

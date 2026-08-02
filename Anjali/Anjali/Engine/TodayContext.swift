@@ -36,7 +36,7 @@ struct TodayEngineInput {
     var prayers: [Prayer]
     var timeContext: TimeContext
     /// A moment the user has explicitly selected (e.g. via a deep link or the
-    /// Moments tab). When set it dominates scoring.
+    /// Find tab). When set it dominates scoring.
     var explicitMoment: Moment?
     /// The user's chosen ishta devata, if any.
     var preferredDeity: Deity?

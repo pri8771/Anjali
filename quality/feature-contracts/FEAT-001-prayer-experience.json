@@ -1,0 +1,70 @@
+{
+  "$schema": "https://raw.githubusercontent.com/pri8771/iOS_app_factory_rules/main/schemas/feature-contract.schema.json",
+  "id": "FEAT-001",
+  "name": "Contextual prayer experience",
+  "status": "verification_pending",
+  "userOutcome": "Open Anjali, receive or discover a fitting reviewed prayer, see its text and meaning, practice through self-led Chant or Silent, or Listen only when that exact prayer has approved human audio, then return to the day.",
+  "entryPoints": [
+    "Today tab",
+    "Find tab browser by Moment, Intention, or Deity",
+    "anjali://prayer/{id}",
+    "local reminder deep link"
+  ],
+  "productionDataSource": "Bundled Anjali/Anjali/Resources/prayers.json plus optional exact-ID, rights-cleared, named-human-approved recordings; current normal builds contain no audio and use no network or fallback fixture.",
+  "states": [
+    "content",
+    "empty-content",
+    "content-load-failed",
+    "ready",
+    "self-led-ready",
+    "playing",
+    "paused",
+    "playback-failed-unstarted",
+    "awaiting-explicit-completion",
+    "completed",
+    "completion-persistence-failed"
+  ],
+  "errorBehavior": "Malformed content is skipped, a missing library shows an explicit empty/error state, Listen is omitted when no exact approved human recording exists, a selected recording that fails to load or play leaves the session unstarted and offers Chant or Silent without running a pretend timer or recording completion, and a failed completion save is disclosed without pretending history was updated.",
+  "duplicateProtectionRequired": true,
+  "persistenceRequired": true,
+  "layoutScenarios": [
+    "current compact iPhone",
+    "current large iPhone",
+    "iPad full screen",
+    "largest accessibility text",
+    "all five time-band palettes"
+  ],
+  "accessibilityRequirements": [
+    "VoiceOver names and hints for primary actions",
+    "semantic Dynamic Type styles",
+    "Reduce Motion disables decorative motion",
+    "progress has an accessible value",
+    "meaning is not conveyed by color alone"
+  ],
+  "prohibitedBehavior": [
+    "Do not surface prayers marked unreviewed or needsReview.",
+    "Do not fabricate cultural sign-off or Sanskrit provenance.",
+    "Do not offer Listen when the exact prayer recording is absent from the current bundle.",
+    "Do not include synthetic or provisional audio in a normal Debug, device, Release, or TestFlight build.",
+    "Do not play a sibling, same-deity, same-theme, or fuzzy-name audio asset for the displayed prayer.",
+    "Do not present estimated lyric timing as synchronized with a recording.",
+    "Do not describe Chant as recorded playback; it is self-led aloud.",
+    "Do not describe Silent as audio; it is inward reading or repetition.",
+    "Do not auto-complete Chant or Silent from elapsed time; require the explicit Complete action.",
+    "Do not record a Listen completion unless playback actually started and completed.",
+    "Do not report a completion as persisted when SwiftData save failed.",
+    "Do not use network or sample prayer fallbacks in production."
+  ],
+  "acceptanceTests": [
+    "PrayerDataLoaderTests",
+    "PrayerModelTests",
+    "PrayerAudioAssetResolverTests",
+    "PlayerControllerTests",
+    "TodayContextEngineTests",
+    "AnjaliFullLoopUITests.testFullLoop_onboardingThroughCompletion",
+    "AnjaliFullLoopUITests.testTextOnlyPrayerOffersClearSelfLedChant",
+    "AnjaliFullLoopUITests.testPrimaryPathAtLargestAccessibilityText",
+    "Scripts/validate_prayers.py",
+    "Scripts/validate_prayers.py --require-signoff"
+  ]
+}

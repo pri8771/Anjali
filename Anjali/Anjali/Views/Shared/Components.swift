@@ -23,6 +23,7 @@ struct TimeBandBackground: View {
 /// The primary call-to-action button styled for a given theme.
 struct AnjaliPrimaryButtonStyle: ButtonStyle {
     let theme: ThemePalette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -33,7 +34,10 @@ struct AnjaliPrimaryButtonStyle: ButtonStyle {
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .opacity(configuration.isPressed ? 0.85 : 1)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .animation(
+                reduceMotion ? nil : .easeOut(duration: 0.15),
+                value: configuration.isPressed
+            )
     }
 }
 

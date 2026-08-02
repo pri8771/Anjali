@@ -34,7 +34,7 @@ jobs:
 
   build-and-test:
     name: Build & test (macOS, unit + UI)
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,24 +42,7 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Pick an available iPhone simulator
-        id: sim
-        run: |
-          # Runner Xcode/simulator versions drift over time, so discover a
-          # real, available iPhone destination rather than hardcoding a
-          # device name that may not exist on this runner's SDK.
-          NAME=$(xcrun simctl list devices available | grep -m1 -oE 'iPhone [^(]+' | sed 's/[[:space:]]*$//')
-          if [ -z "$NAME" ]; then
-            echo "::error::No available iPhone simulator found on this runner."
-            xcrun simctl list devices available
-            exit 1
-          fi
-          echo "Using simulator: $NAME"
-          echo "name=$NAME" >> "$GITHUB_OUTPUT"
-
-      - name: Build and test (unit + UI)
-        env:
-          DESTINATION: platform=iOS Simulator,name=${{ steps.sim.outputs.name }}
+      - name: Release build and test (unit + UI)
         run: ./Scripts/build.sh
 
       - name: Upload build/test logs

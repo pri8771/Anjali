@@ -76,7 +76,9 @@ def row_for(prayer: dict) -> dict:
 
 def write_csv(path: Path, headers: list[str], rows: list[dict]) -> None:
     with path.open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=headers)
+        # Keep generated catalogs byte-stable across platforms and consistent
+        # with the repository's LF line endings.
+        writer = csv.DictWriter(f, fieldnames=headers, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow(row)

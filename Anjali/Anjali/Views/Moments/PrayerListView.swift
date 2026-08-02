@@ -2,12 +2,22 @@ import SwiftUI
 
 /// A simple list of prayers under a heading. Tapping a row opens the player.
 struct PrayerListView: View {
+    @EnvironmentObject private var settings: AppSettings
+
     let title: String
+    var subtitle: String? = nil
     let prayers: [Prayer]
     let onSelect: (Prayer) -> Void
 
     var body: some View {
         List {
+            if let subtitle {
+                Section {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
             if prayers.isEmpty {
                 Text("No prayers here yet.")
                     .foregroundStyle(.secondary)
@@ -16,7 +26,10 @@ struct PrayerListView: View {
                     Button {
                         onSelect(prayer)
                     } label: {
-                        PrayerRow(prayer: prayer)
+                        PrayerRow(
+                            prayer: prayer,
+                            scriptPreference: settings.scriptPreference
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -30,6 +43,7 @@ struct PrayerListView: View {
 /// A compact row describing a prayer.
 struct PrayerRow: View {
     let prayer: Prayer
+    let scriptPreference: ScriptPreference
 
     var body: some View {
         HStack(spacing: 14) {
@@ -40,11 +54,19 @@ struct PrayerRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(prayer.title)
                     .font(.headline)
-                Text(prayer.transliteration)
-                    .font(.subheadline)
-                    .italic()
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if scriptPreference != .transliteration {
+                    Text(prayer.primaryText.devanagari)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                if scriptPreference != .devanagari {
+                    Text(prayer.transliteration)
+                        .font(scriptPreference == .both ? .caption : .subheadline)
+                        .italic()
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
             Spacer()
             Text(prayer.durationLabel)

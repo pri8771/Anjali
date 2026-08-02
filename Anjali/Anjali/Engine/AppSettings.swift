@@ -15,6 +15,14 @@ final class AppSettings: ObservableObject {
         static let ishtaDevata = "ishtaDevata"
         static let favoriteMoments = "favoriteMoments"
         static let enabledReminders = "enabledReminders"
+
+        static func reminderHour(_ slot: ReminderSlot) -> String {
+            "reminderTime.\(slot.rawValue).hour"
+        }
+
+        static func reminderMinute(_ slot: ReminderSlot) -> String {
+            "reminderTime.\(slot.rawValue).minute"
+        }
     }
 
     private let defaults: UserDefaults
@@ -40,11 +48,12 @@ final class AppSettings: ObservableObject {
         set { defaults.set(newValue.rawValue, forKey: Key.scriptPreference); bump() }
     }
 
-    /// The mode the user prefers to experience prayers in. Defaults to Listen.
+    /// The mode the user prefers to experience prayers in. Chant is the safe
+    /// default because it remains meaningful without an approved recording.
     var preferredPrayerMode: PlayMode {
         get {
             guard let raw = defaults.string(forKey: Key.preferredPrayerMode),
-                  let value = PlayMode(rawValue: raw) else { return .listen }
+                  let value = PlayMode(rawValue: raw) else { return .chant }
             return value
         }
         set { defaults.set(newValue.rawValue, forKey: Key.preferredPrayerMode); bump() }
@@ -85,6 +94,25 @@ final class AppSettings: ObservableObject {
             defaults.set(newValue.map(\.rawValue), forKey: Key.enabledReminders)
             bump()
         }
+    }
+
+    func reminderTime(for slot: ReminderSlot) -> ReminderTime {
+        let hourKey = Key.reminderHour(slot)
+        let minuteKey = Key.reminderMinute(slot)
+        guard defaults.object(forKey: hourKey) != nil,
+              defaults.object(forKey: minuteKey) != nil else {
+            return slot.defaultTime
+        }
+        return ReminderTime(
+            hour: defaults.integer(forKey: hourKey),
+            minute: defaults.integer(forKey: minuteKey)
+        )
+    }
+
+    func setReminderTime(_ time: ReminderTime, for slot: ReminderSlot) {
+        defaults.set(time.hour, forKey: Key.reminderHour(slot))
+        defaults.set(time.minute, forKey: Key.reminderMinute(slot))
+        bump()
     }
 
     func toggleFavoriteMoment(_ moment: Moment) {

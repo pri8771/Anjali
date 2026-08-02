@@ -33,10 +33,10 @@ system masks the corners). It must remain clearly readable when scaled down:
 
 Test by viewing the 1024 master shrunk to 29×29 — the flame should still read.
 
-> **Current state:** `Anjali/Anjali/Assets.xcassets/AppIcon.appiconset` is a
-> placeholder (single universal 1024 slot, no image). Drop the final 1024 PNG
-> in and Xcode generates the rest. **Add real artwork before any external
-> build** (it's on the pre-TestFlight checklist).
+> **Current state (audited 29 July 2026):**
+> `Anjali/Anjali/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png` is present
+> at 1024×1024 RGB with no alpha and compiles without a missing-icon warning.
+> Human brand/legibility approval at 29×29 remains pending.
 
 ## Concepts (pick one to develop)
 

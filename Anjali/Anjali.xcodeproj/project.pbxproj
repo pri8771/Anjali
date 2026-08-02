@@ -34,6 +34,26 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Resources/Audio/devi-dum.m4a,
+				Resources/Audio/devi-navarna.m4a,
+				Resources/Audio/ganesha-gam.mp3,
+				Resources/Audio/ganesha-shri.m4a,
+				Resources/Audio/ganesha-vakratunda.mp3,
+				Resources/Audio/hanuman-namah.m4a,
+				Resources/Audio/krishna-mahamantra.mp3,
+				Resources/Audio/krishna-vasudeva.mp3,
+				Resources/Audio/lakshmi-shrim.m4a,
+				Resources/Audio/saraswati-aim.m4a,
+				Resources/Audio/shanti-asato-ma.mp3,
+				Resources/Audio/shanti-lokah-samastah.m4a,
+				Resources/Audio/shanti-saha-navavatu.m4a,
+				Resources/Audio/shanti-sarve-bhavantu.mp3,
+				Resources/Audio/shanti-triple.m4a,
+				Resources/Audio/shiva-mahamrityunjaya.m4a,
+				Resources/Audio/shiva-namah.mp3,
+				Resources/Audio/surya-gayatri.mp3,
+				Resources/Audio/surya-namah.m4a,
+				Resources/Audio/vishnu-narayana.mp3,
 			);
 			target = AB00000000000000000000B1 /* Anjali */;
 		};
@@ -271,6 +291,7 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 796XH483R4;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Anjali/Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

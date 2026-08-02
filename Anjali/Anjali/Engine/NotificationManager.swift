@@ -1,6 +1,17 @@
 import Foundation
 import UserNotifications
 
+/// A local wall-clock time for a repeating reminder.
+struct ReminderTime: Equatable, Hashable {
+    let hour: Int
+    let minute: Int
+
+    init(hour: Int, minute: Int) {
+        self.hour = min(23, max(0, hour))
+        self.minute = min(59, max(0, minute))
+    }
+}
+
 /// The three daily reminders, with stable identifiers so re-scheduling
 /// replaces rather than duplicates.
 enum ReminderSlot: String, CaseIterable, Identifiable {
@@ -37,6 +48,10 @@ enum ReminderSlot: String, CaseIterable, Identifiable {
 
     var defaultMinute: Int { 30 }
 
+    var defaultTime: ReminderTime {
+        ReminderTime(hour: defaultHour, minute: defaultMinute)
+    }
+
     /// The moment a tap should deep-link into.
     var deepLink: DeepLink {
         switch self {
@@ -61,7 +76,7 @@ final class NotificationManager: ObservableObject {
     /// Ask permission. Returns whether the user granted alerts.
     func requestAuthorization() async -> Bool {
         do {
-            return try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            return try await center.requestAuthorization(options: [.alert, .sound])
         } catch {
             return false
         }
@@ -71,9 +86,20 @@ final class NotificationManager: ObservableObject {
         await center.notificationSettings().authorizationStatus
     }
 
-    /// Schedule a single daily reminder at its default time. Uses the slot's
-    /// stable identifier so repeated calls replace the existing request.
-    func schedule(_ slot: ReminderSlot) {
+    /// Reminder slots that currently have a pending system request. This lets
+    /// the app repair stale local preferences after permission or requests are
+    /// changed outside Anjali.
+    func pendingSlots() async -> Set<ReminderSlot> {
+        let identifiers = Set(
+            await center.pendingNotificationRequests().map(\.identifier)
+        )
+        return Set(ReminderSlot.allCases.filter { identifiers.contains($0.rawValue) })
+    }
+
+    /// Schedule a single daily reminder at a chosen local time. Uses the
+    /// slot's stable identifier so a successful change atomically replaces
+    /// the previous request instead of creating a duplicate.
+    func schedule(_ slot: ReminderSlot, at time: ReminderTime? = nil) async throws {
         let content = UNMutableNotificationContent()
         content.title = slot.title
         content.body = slot.body
@@ -82,9 +108,10 @@ final class NotificationManager: ObservableObject {
             content.userInfo = ["deepLink": urlString]
         }
 
+        let resolvedTime = time ?? slot.defaultTime
         var components = DateComponents()
-        components.hour = slot.defaultHour
-        components.minute = slot.defaultMinute
+        components.hour = resolvedTime.hour
+        components.minute = resolvedTime.minute
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
 
         let request = UNNotificationRequest(
@@ -92,7 +119,7 @@ final class NotificationManager: ObservableObject {
             content: content,
             trigger: trigger
         )
-        center.add(request)
+        try await center.add(request)
     }
 
     func cancel(_ slot: ReminderSlot) {
@@ -100,13 +127,31 @@ final class NotificationManager: ObservableObject {
     }
 
     /// Reconcile scheduled reminders with the set the user has enabled.
-    func sync(enabledSlots: Set<ReminderSlot>) {
-        for slot in ReminderSlot.allCases {
-            if enabledSlots.contains(slot) {
-                schedule(slot)
-            } else {
-                cancel(slot)
+    func sync(
+        enabledSlots: Set<ReminderSlot>,
+        times: [ReminderSlot: ReminderTime] = [:]
+    ) async throws {
+        let existingIDs = Set(
+            await center.pendingNotificationRequests().map(\.identifier)
+        )
+        var addedIDs: [String] = []
+
+        do {
+            for slot in ReminderSlot.allCases where enabledSlots.contains(slot) {
+                try await schedule(slot, at: times[slot])
+                if !existingIDs.contains(slot.rawValue) {
+                    addedIDs.append(slot.rawValue)
+                }
             }
+        } catch {
+            // Keep persisted settings and notification-center state aligned if
+            // a multi-reminder opt-in only schedules partially.
+            center.removePendingNotificationRequests(withIdentifiers: addedIDs)
+            throw error
+        }
+
+        for slot in ReminderSlot.allCases where !enabledSlots.contains(slot) {
+                cancel(slot)
         }
     }
 }

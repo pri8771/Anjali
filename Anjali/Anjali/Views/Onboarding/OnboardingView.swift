@@ -1,37 +1,22 @@
 import SwiftUI
 
-/// Two-screen first-launch onboarding (no third step):
-///  1. Wordmark + tagline.
-///  2. Gentle preferences — script, preferred mode, ishta devata, optional
-///     favourite moments, and an optional reminder opt-in.
+/// Short, optional first-launch orientation:
+///  1. Product promise with an immediate skip.
+///  2. A live prayer-text preview and optional devotional preference.
+///
+/// Mode teaching and reminder permission stay in context, after entry, rather
+/// than asking people to configure concepts they have not experienced yet.
 struct OnboardingView: View {
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var library: PrayerLibrary
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var page = 0
 
     // Local draft of preferences, committed on finish.
     @State private var script: ScriptPreference = .both
-    @State private var mode: PlayMode = .listen
     @State private var ishta: Deity?
-    @State private var favoriteMoments: Set<Moment> = []
-    @State private var remindersOn = false
-    @State private var showReminderDeniedNote = false
 
     private let theme = ThemePalette.palette(for: .dawn)
-
-    /// A small, curated subset of moments offered during onboarding.
-    private struct OnboardingMoment: Identifiable {
-        let moment: Moment
-        let label: String
-        var id: String { moment.rawValue }
-    }
-    private let curatedMoments: [OnboardingMoment] = [
-        .init(moment: .beforeWork, label: "Morning"),
-        .init(moment: .leavingHome, label: "Leaving home"),
-        .init(moment: .study, label: "Work / study"),
-        .init(moment: .sunset, label: "Sunset"),
-        .init(moment: .sleep, label: "Sleep")
-    ]
 
     var body: some View {
         ZStack {
@@ -45,11 +30,6 @@ struct OnboardingView: View {
             .indexViewStyle(.page(backgroundDisplayMode: .always))
         }
         .preferredColorScheme(.dark)
-        .alert("Reminders are off", isPresented: $showReminderDeniedNote) {
-            Button("Continue") { complete() }
-        } message: {
-            Text("You can always enable reminders later in Me.")
-        }
     }
 
     // MARK: Screen 1
@@ -75,7 +55,13 @@ struct OnboardingView: View {
             }
             .buttonStyle(AnjaliPrimaryButtonStyle(theme: theme))
             .padding(.horizontal, 32)
-            .padding(.bottom, 48)
+
+            Button("Skip for now", action: complete)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(theme.foreground)
+                .frame(minHeight: 44)
+                .accessibilityHint("Use the default text and prayer preferences")
+                .padding(.bottom, 36)
         }
         .padding()
     }
@@ -86,19 +72,16 @@ struct OnboardingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 26) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("A few quiet choices")
+                    Text("Make the prayer easy to read")
                         .font(.title.weight(.semibold))
                         .foregroundStyle(theme.foreground)
-                    Text("You can change these anytime in Me.")
+                    Text("Choose how Sanskrit appears. You can change this anytime in Me.")
                         .font(.subheadline)
                         .foregroundStyle(theme.secondaryForeground)
                 }
 
                 scriptSection
-                modeSection
                 ishtaSection
-                momentsSection      // optional, visually secondary
-                reminderSection     // optional, default off
 
                 Button {
                     finish()
@@ -124,18 +107,25 @@ struct OnboardingView: View {
                 }
             }
             .pickerStyle(.segmented)
-        }
-    }
 
-    private var modeSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("How would you like to pray?")
-            Picker("Mode", selection: $mode) {
-                ForEach(PlayMode.allCases) { option in
-                    Text(option.displayName).tag(option)
+            if let sample = library.prayers.first {
+                VStack(spacing: 8) {
+                    Text("PREVIEW")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(theme.accent)
+                    PrayerTextView(
+                        prayer: sample,
+                        scriptPreference: script,
+                        theme: theme,
+                        primaryStyle: .title2
+                    )
                 }
+                .frame(maxWidth: .infinity)
+                .padding(16)
+                .background(theme.foreground.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
-            .pickerStyle(.segmented)
         }
     }
 
@@ -154,32 +144,6 @@ struct OnboardingView: View {
                 }
             }
         }
-    }
-
-    // Visually secondary, clearly optional, never blocks progression.
-    private var momentsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("What moments matter most? (optional)")
-                .font(.subheadline)
-                .foregroundStyle(theme.secondaryForeground)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(curatedMoments) { item in
-                        momentChip(item)
-                    }
-                }
-                .padding(.vertical, 2)
-            }
-        }
-    }
-
-    private var reminderSection: some View {
-        Toggle(isOn: $remindersOn) {
-            Text("Remind me for morning or evening prayer")
-                .font(.subheadline)
-                .foregroundStyle(theme.foreground)
-        }
-        .tint(theme.accent)
     }
 
     // MARK: Chip builders
@@ -204,51 +168,21 @@ struct OnboardingView: View {
                 .clipShape(Capsule())
         }
         .buttonStyle(.plain)
-    }
-
-    private func momentChip(_ item: OnboardingMoment) -> some View {
-        let isSelected = favoriteMoments.contains(item.moment)
-        return Button {
-            if isSelected { favoriteMoments.remove(item.moment) }
-            else { favoriteMoments.insert(item.moment) }
-        } label: {
-            Text(item.label)
-                .font(.caption)               // smaller — secondary to deity/mode
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(isSelected ? theme.accent.opacity(0.85) : Color.white.opacity(0.08))
-                .foregroundStyle(isSelected ? Color(hex: "1A1208") : theme.secondaryForeground)
-                .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityHint(
+            deity == nil
+                ? "Do not prioritize a deity on Today"
+                : "Gently prioritize \(label) prayers on Today"
+        )
     }
 
     // MARK: Finish
 
     private func finish() {
         settings.scriptPreference = script
-        settings.preferredPrayerMode = mode
+        settings.preferredPrayerMode = .chant
         settings.ishtaDevata = ishta
-        settings.favoriteMoments = Array(favoriteMoments)
-
-        guard remindersOn else {
-            complete()
-            return
-        }
-
-        // Only request OS permission when the user opted in.
-        Task { @MainActor in
-            let granted = await NotificationManager.shared.requestAuthorization()
-            if granted {
-                let slots: Set<ReminderSlot> = [.dawn, .sunset]
-                settings.enabledReminders = slots
-                NotificationManager.shared.sync(enabledSlots: slots)
-                complete()
-            } else {
-                // Denied: note gently and continue — never block onboarding.
-                showReminderDeniedNote = true
-            }
-        }
+        complete()
     }
 
     private func complete() {

@@ -16,8 +16,8 @@ final class AppCoordinator: ObservableObject {
     @Published var selectedTab: AppTab = .today
     /// The prayer currently presented in the full-screen player, if any.
     @Published var activePrayer: Prayer?
-    /// When set, the player opens locked to this mode (e.g. the Today card's
-    /// "Silent" action), overriding the user's preferred mode.
+    /// When set, the player opens preselected to this mode (e.g. the Today
+    /// card's quiet-reading action), overriding the initial preference.
     @Published var forcedMode: PlayMode?
     /// A moment the user navigated into from a deep link / browse.
     @Published var pendingMoment: Moment?

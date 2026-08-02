@@ -14,19 +14,23 @@ struct TodayView: View {
     /// screen is shown.
     @State private var now = Date()
     /// Which of today's contextual prayers the card is showing (0 = the
-    /// top-ranked selection; "Change" steps through the rest).
+    /// top-ranked selection; "Another prayer" steps through the rest).
     @State private var cardIndex = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var context: TodayContext {
         let calendar = Calendar.current
+        let storedMode = settings.preferredPrayerMode
+        let effectiveMode = library.availablePreferredModes.contains(storedMode)
+            ? storedMode
+            : .chant
         let input = TodayEngineInput(
             prayers: library.prayers,
             timeContext: TimeBandResolver.timeContext(for: now, calendar: calendar),
             explicitMoment: nil,
             preferredDeity: settings.ishtaDevata,
             preferredMoments: settings.favoriteMoments,
-            preferredMode: settings.preferredPrayerMode,
+            preferredMode: effectiveMode,
             completionRecency: buildRecency(now: now, calendar: calendar)
         )
         return TodayContextEngine.makeContext(input: input)
@@ -86,6 +90,12 @@ struct TodayView: View {
                         PrayerCardView(
                             prayer: prayer,
                             theme: theme,
+                            scriptPreference: settings.scriptPreference,
+                            preferredMode: settings.preferredPrayerMode,
+                            recommendationReason: recommendationReason(
+                                for: prayer,
+                                context: context
+                            ),
                             canChange: prayers.count > 1,
                             onBegin: { coordinator.play(prayer) },
                             onSilent: { coordinator.play(prayer, forcedMode: .silent) },
@@ -115,6 +125,22 @@ struct TodayView: View {
                 else { withAnimation(.easeInOut(duration: 0.8)) { now = Date() } }
             }
         }
+    }
+
+    private func recommendationReason(
+        for prayer: Prayer,
+        context: TodayContext
+    ) -> String {
+        if let deity = settings.ishtaDevata, prayer.deity == deity {
+            return "From your chosen deity"
+        }
+        if prayer.timeContexts.contains(context.timeContext) {
+            return "Suggested for \(context.timeContext.displayName.lowercased())"
+        }
+        if let matched = settings.favoriteMoments.first(where: prayer.moments.contains) {
+            return "From your \(matched.displayName.lowercased()) preference"
+        }
+        return "A brief prayer for right now"
     }
 
     private func header(theme: ThemePalette, context: TodayContext) -> some View {

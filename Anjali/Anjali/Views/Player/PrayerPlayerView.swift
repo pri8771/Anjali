@@ -1,22 +1,26 @@
 import SwiftUI
 import SwiftData
 
-/// Full-screen prayer player. Listen / Chant use an audio-style layout; Silent
-/// uses a distinct, minimal reading layout. Records a completion in SwiftData.
+/// Full-screen prayer player with one stable layout for Listen, self-led
+/// Chant, and inward Silent practice. Records an explicit completion locally.
 struct PrayerPlayerView: View {
     let prayer: Prayer
-    /// When set, the player opens locked to this mode (Today card "Silent").
+    /// When set, the player opens preselected to this mode (Today card's quiet
+    /// shortcut). The user can still switch modes inside the player.
     let forcedMode: PlayMode?
 
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var coordinator: AppCoordinator
+    @EnvironmentObject private var persistenceHealth: PersistenceHealth
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
     @StateObject private var controller: PlayerController
     @State private var mode: PlayMode
     @State private var showCompletion = false
+    @State private var persistenceErrorMessage: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private let playerModes: [PlayMode]
 
     // Today's theme drives the player background too.
     private let theme = ThemePalette.palette(for: TimeBandResolver.timeContext(for: Date()))
@@ -24,7 +28,10 @@ struct PrayerPlayerView: View {
     init(prayer: Prayer, forcedMode: PlayMode? = nil) {
         self.prayer = prayer
         self.forcedMode = forcedMode
-        let initialMode = forcedMode ?? prayer.playableModes.first ?? .silent
+        let audioAvailable = PrayerAudioAssetResolver().resolve(prayer: prayer) != nil
+        let playerModes = prayer.playableModes(audioAvailable: audioAvailable)
+        self.playerModes = playerModes
+        let initialMode = forcedMode ?? playerModes.first ?? .silent
         _mode = State(initialValue: initialMode)
         _controller = StateObject(wrappedValue: PlayerController(prayer: prayer, mode: initialMode))
     }
@@ -32,19 +39,12 @@ struct PrayerPlayerView: View {
     var body: some View {
         ZStack {
             theme.backgroundGradient.ignoresSafeArea()
-
-            if mode == .silent {
-                silentContent
-            } else {
-                audioContent
-            }
+            playerContent
         }
         .preferredColorScheme(theme.prefersDarkForeground ? .light : .dark)
         .onAppear {
             applyInitialMode()
-            handleSilentEntry()
         }
-        .onChange(of: mode) { _, _ in handleSilentEntry() }
         .onChange(of: controller.isFinished) { _, finished in
             if finished {
                 recordCompletion()
@@ -65,20 +65,45 @@ struct PrayerPlayerView: View {
                 .transition(.opacity)
             }
         }
+        .alert(
+            "Changes weren't saved",
+            isPresented: Binding(
+                get: { persistenceErrorMessage != nil },
+                set: { if !$0 { persistenceErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(persistenceErrorMessage ?? "")
+        }
     }
 
-    // MARK: Audio layout (Listen / Chant)
+    // MARK: Player
 
-    private var audioContent: some View {
+    private var playerContent: some View {
         VStack(spacing: 0) {
             topBar
-            Spacer(minLength: 8)
+
+            modePicker.padding(.top, 12)
+
+            modeGuidance
+                .padding(.top, 12)
+
+            if mode == .listen {
+                experimentalAudioDisclosure
+                    .padding(.top, 10)
+            }
 
             ScrollView {
-                VStack(spacing: 22) {
+                VStack(spacing: 18) {
                     Text(prayer.title)
                         .font(.system(.title2, design: .serif, weight: .semibold))
                         .foregroundStyle(theme.foreground)
+
+                    Text("PRAYER TEXT")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(theme.accent)
 
                     PrayerTextView(
                         prayer: prayer,
@@ -87,104 +112,108 @@ struct PrayerPlayerView: View {
                         primaryStyle: .largeTitle
                     )
 
-                    Text(prayer.meaning)
-                        .font(.body)
-                        .foregroundStyle(theme.secondaryForeground)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                    VStack(spacing: 6) {
+                        Text("MEANING")
+                            .font(.caption2.weight(.semibold))
+                            .tracking(1.4)
+                            .foregroundStyle(theme.accent)
+                        Text(prayer.meaning)
+                            .font(.body)
+                            .foregroundStyle(theme.secondaryForeground)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal)
                 }
-                .padding(.vertical, 12)
+                .padding(.vertical, 18)
             }
 
-            Spacer(minLength: 8)
-
-            FlameProgressView(progress: controller.progress, theme: theme)
-                .frame(width: 120, height: 120)
+            progressView
                 .padding(.bottom, 8)
-                .accessibilityHidden(true)
 
-            if mode == .listen && controller.audioUnavailable {
-                Text("Audio isn't available — follow along in silence.")
-                    .font(.caption)
-                    .foregroundStyle(theme.secondaryForeground)
-            }
+            Text(statusText)
+                .font(.caption)
+                .foregroundStyle(
+                    controller.audioUnavailable ? Color.red : theme.secondaryForeground
+                )
+                .multilineTextAlignment(.center)
+                .frame(minHeight: 34)
+                .padding(.horizontal)
 
-            if forcedMode == nil {
-                modePicker.padding(.vertical, 14)
-            }
+            VStack(spacing: 10) {
+                controls
 
-            controls.padding(.bottom, 28)
-        }
-        .padding(.horizontal, 24)
-    }
-
-    // MARK: Silent layout (distinct, minimal, office-safe)
-
-    private var silentContent: some View {
-        VStack(spacing: 0) {
-            topBar
-
-            if forcedMode == nil {
-                modePicker.padding(.vertical, 10)
-            }
-
-            Spacer(minLength: 12)
-
-            ScrollView {
-                VStack(spacing: 20) {
-                    Text(prayer.title)
-                        .font(.system(.title2, design: .serif, weight: .semibold))
-                        .foregroundStyle(theme.foreground)
-
-                    PrayerTextView(
-                        prayer: prayer,
-                        scriptPreference: settings.scriptPreference,
-                        theme: theme,
-                        primaryStyle: .largeTitle
+                if mode != .listen {
+                    Button {
+                        controller.completeNow()
+                    } label: {
+                        Text("Complete").frame(maxWidth: .infinity)
+                    }
+                    .silentCompleteStyle(theme: theme)
+                    .accessibilityLabel("Complete prayer")
+                    .accessibilityHint(
+                        controller.hasStarted
+                            ? "Finish this prayer and show completion options"
+                            : "Begin the prayer before marking it complete"
                     )
-
-                    Text(prayer.meaning)
-                        .font(.body)
-                        .foregroundStyle(theme.foreground.opacity(0.85))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                    .disabled(!controller.hasStarted)
+                    .opacity(controller.hasStarted ? 1 : 0.45)
                 }
-                .padding(.vertical, 12)
             }
-
-            Spacer(minLength: 12)
-
-            silentProgressBar
-                .padding(.bottom, 18)
-
-            Button {
-                controller.completeNow()
-            } label: {
-                Text("Complete").frame(maxWidth: .infinity)
-            }
-            .silentCompleteStyle(theme: theme)
-            .accessibilityLabel("Complete prayer")
-            .padding(.bottom, 28)
+            .padding(.bottom, 24)
         }
         .padding(.horizontal, 24)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Silent prayer mode. Reading prayer text.")
     }
 
-    /// A thin, calm progress bar — no glow, minimal motion.
-    private var silentProgressBar: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(theme.foreground.opacity(0.15))
-                Capsule()
-                    .fill(theme.accent)
-                    .frame(width: geo.size.width * controller.progress)
-            }
+    private var modeGuidance: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: mode.symbolName)
+                .foregroundStyle(theme.accent)
+                .accessibilityHidden(true)
+            Text(mode.guidance)
+                .font(.subheadline)
+                .foregroundStyle(theme.foreground)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(height: 4)
-        .accessibilityElement()
-        .accessibilityLabel("Prayer progress, \(Int((controller.progress * 100).rounded())) percent complete")
+        .padding(12)
+        .background(theme.foreground.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(mode.displayName) mode. \(mode.guidance)")
+    }
+
+    private var experimentalAudioDisclosure: some View {
+        Text("TestFlight pilot: Listen uses experimental generated audio. The displayed text, transliteration, and meaning are the source of truth.")
+            .font(.caption)
+            .foregroundStyle(theme.secondaryForeground)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(theme.foreground.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .accessibilityLabel("TestFlight pilot notice. Listen uses experimental generated audio. Follow the displayed prayer text as the source of truth.")
+    }
+
+    @ViewBuilder
+    private var progressView: some View {
+        if mode == .silent {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(theme.foreground.opacity(0.15))
+                    Capsule()
+                        .fill(theme.accent)
+                        .frame(width: geo.size.width * controller.progress)
+                }
+            }
+            .frame(height: 5)
+            .padding(.vertical, 12)
+            .accessibilityElement()
+            .accessibilityLabel(progressAccessibilityLabel)
+        } else {
+            FlameProgressView(progress: controller.progress, theme: theme)
+                .frame(width: 92, height: 92)
+                .accessibilityLabel(progressAccessibilityLabel)
+        }
     }
 
     // MARK: Shared subviews
@@ -199,6 +228,8 @@ struct PrayerPlayerView: View {
                 Image(systemName: "xmark")
                     .font(.headline)
                     .foregroundStyle(theme.foreground)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel("Close")
             Spacer()
@@ -210,7 +241,7 @@ struct PrayerPlayerView: View {
 
     private var modePicker: some View {
         HStack(spacing: 10) {
-            ForEach(prayer.playableModes) { available in
+            ForEach(playerModes) { available in
                 // ModeChip carries its own VoiceOver label + button/selected traits.
                 ModeChip(mode: available, isSelected: available == mode, theme: theme) {
                     mode = available
@@ -230,33 +261,85 @@ struct PrayerPlayerView: View {
         } label: {
             HStack {
                 Image(systemName: controller.isRunning ? "pause.fill" : "flame.fill")
-                Text(controller.isRunning ? "Pause" : "Begin")
+                Text(controlTitle)
             }
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(AnjaliPrimaryButtonStyle(theme: theme))
-        .accessibilityLabel(controller.isRunning ? "Pause" : "Begin prayer")
+        .accessibilityLabel(controlTitle)
+    }
+
+    private var controlTitle: String {
+        if controller.isRunning {
+            switch mode {
+            case .listen: return "Pause listening"
+            case .chant: return "Pause chanting"
+            case .silent: return "Pause silent prayer"
+            }
+        }
+        if controller.hasStarted {
+            switch mode {
+            case .listen: return "Resume listening"
+            case .chant: return "Continue chanting"
+            case .silent: return "Continue silent prayer"
+            }
+        }
+        switch mode {
+        case .listen: return "Play recitation"
+        case .chant: return "Begin chanting"
+        case .silent: return "Begin silent prayer"
+        }
+    }
+
+    private var statusText: String {
+        if controller.audioUnavailable {
+            return "The recording couldn’t start. Choose Chant or Silent to continue."
+        }
+        if controller.isFinished {
+            return "Prayer complete"
+        }
+        if !controller.hasStarted {
+            return "Ready · \(prayer.accessibleDuration)"
+        }
+        let time = formattedTime(controller.remaining)
+        if controller.isRunning {
+            switch mode {
+            case .listen: return "Playing · \(time) remaining"
+            case .chant:
+                return controller.remaining > 0
+                    ? "Chanting · \(time) suggested time remaining"
+                    : "Continue at your own pace · Complete when ready"
+            case .silent:
+                return controller.remaining > 0
+                    ? "Silent prayer · \(time) suggested time remaining"
+                    : "Continue at your own pace · Complete when ready"
+            }
+        }
+        if controller.remaining <= 0 {
+            return "Paused · Continue at your own pace"
+        }
+        return "Paused · \(time) remaining"
+    }
+
+    private var progressAccessibilityLabel: String {
+        "Prayer progress, \(Int((controller.progress * 100).rounded())) percent complete"
+    }
+
+    private func formattedTime(_ interval: TimeInterval) -> String {
+        let seconds = max(0, Int(interval.rounded(.up)))
+        return String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 
     // MARK: Mode handling
 
-    /// Resolve the opening mode: a forced mode (set in init) is locked;
-    /// otherwise prefer the user's preferred mode when supported.
+    /// Resolve the opening mode. A mode selected by the launching action wins;
+    /// otherwise use the user's preference when supported.
     private func applyInitialMode() {
         guard forcedMode == nil else { return }
         let preferred = settings.preferredPrayerMode
-        guard prayer.playableModes.contains(preferred), preferred != mode else { return }
+        guard playerModes.contains(preferred), preferred != mode else { return }
         mode = preferred
         controller.setMode(preferred)
-    }
-
-    /// Silent mode auto-starts its quiet reading timer and announces itself.
-    private func handleSilentEntry() {
-        guard mode == .silent else { return }
-        if !controller.isRunning && !controller.isFinished {
-            controller.start()
-        }
-        AccessibilityNotification.Announcement("Silent prayer mode. Reading prayer text.").post()
     }
 
     // MARK: Actions
@@ -264,7 +347,14 @@ struct PrayerPlayerView: View {
     private func recordCompletion() {
         let completion = PrayerCompletion(prayerID: prayer.id, mode: mode, completedAt: Date())
         modelContext.insert(completion)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            let message = "The prayer is complete, but it couldn't be added to your local history."
+            persistenceHealth.report(message)
+            persistenceErrorMessage = message
+        }
     }
 
     private func finishAndClose() {
@@ -288,10 +378,18 @@ struct PrayerPlayerView: View {
         let descriptor = FetchDescriptor<FavoritePrayer>(
             predicate: #Predicate { $0.prayerID == id }
         )
-        let alreadySaved = (try? modelContext.fetch(descriptor))?.isEmpty == false
-        if !alreadySaved {
-            modelContext.insert(FavoritePrayer(prayerID: id, savedAt: Date()))
-            try? modelContext.save()
+        do {
+            let alreadySaved = try modelContext.fetch(descriptor).isEmpty == false
+            if !alreadySaved {
+                modelContext.insert(FavoritePrayer(prayerID: id, savedAt: Date()))
+                try modelContext.save()
+            }
+        } catch {
+            modelContext.rollback()
+            let message = "This prayer couldn't be saved. Please try again."
+            persistenceHealth.report(message)
+            persistenceErrorMessage = message
+            return
         }
         coordinator.noteSessionCompletion(id)
         controller.stop()
@@ -301,7 +399,7 @@ struct PrayerPlayerView: View {
 }
 
 private extension View {
-    /// Discreet styling for the Silent "Complete" CTA.
+    /// Discreet styling for the self-led modes' explicit completion action.
     func silentCompleteStyle(theme: ThemePalette) -> some View {
         self
             .font(.headline)

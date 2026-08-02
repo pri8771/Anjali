@@ -74,7 +74,7 @@ enum Moment: String, Codable, CaseIterable, Identifiable, Hashable {
         case .meeting: return "Meeting"
         case .study: return "Study"
         case .travel: return "Travel"
-        case .anxiety: return "Anxiety"
+        case .anxiety: return "Finding calm"
         case .gratitude: return "Gratitude"
         case .protection: return "Protection"
         case .sunset: return "Sunset"
@@ -96,6 +96,36 @@ enum Moment: String, Codable, CaseIterable, Identifiable, Hashable {
         case .protection: return "shield"
         case .sunset: return "sunset"
         case .sleep: return "moon.stars"
+        }
+    }
+
+    /// Explains the situation represented by a Moment. Moments are browsing
+    /// contexts, not clock restrictions; a person can open any of them at any
+    /// time.
+    var guidance: String {
+        switch self {
+        case .dawn:
+            return "For sunrise or the beginning of your day."
+        case .leavingHome:
+            return "A brief pause before stepping out."
+        case .beforeWork:
+            return "Set an intention before beginning your work."
+        case .meeting:
+            return "Find steadiness before meeting with others."
+        case .study:
+            return "Prepare for focused learning or reflection."
+        case .travel:
+            return "Pause before a journey or while away from home."
+        case .anxiety:
+            return "Turn toward steadiness when the mind feels unsettled."
+        case .gratitude:
+            return "Offer thanks for what is present."
+        case .protection:
+            return "Seek courage and a sense of protection."
+        case .sunset:
+            return "Mark the transition from day toward evening."
+        case .sleep:
+            return "Let the day settle before rest."
         }
     }
 }
@@ -159,6 +189,34 @@ enum Intention: String, Codable, CaseIterable, Identifiable, Hashable {
     var id: String { rawValue }
 
     var displayName: String { rawValue.capitalized }
+
+    var symbolName: String {
+        switch self {
+        case .clarity: return "sun.max"
+        case .gratitude: return "hands.sparkles"
+        case .protection: return "shield"
+        case .peace: return "leaf"
+        case .focus: return "scope"
+        case .courage: return "flame"
+        case .prosperity: return "sparkles"
+        case .wisdom: return "book.closed"
+        case .devotion: return "heart"
+        }
+    }
+
+    var guidance: String {
+        switch self {
+        case .clarity: return "For seeing the next step more clearly."
+        case .gratitude: return "For offering thanks."
+        case .protection: return "For seeking courage and protection."
+        case .peace: return "For settling into peace."
+        case .focus: return "For returning attention to what matters."
+        case .courage: return "For meeting difficulty with steadiness."
+        case .prosperity: return "For approaching work and abundance with reverence."
+        case .wisdom: return "For learning, discernment, and reflection."
+        case .devotion: return "For turning attention toward the Divine."
+        }
+    }
 }
 
 /// How a prayer can be experienced in the player.
@@ -182,6 +240,18 @@ enum PlayMode: String, Codable, CaseIterable, Identifiable, Hashable {
         case .listen: return "speaker.wave.2"
         case .chant: return "text.quote"
         case .silent: return "moon"
+        }
+    }
+
+    /// Plain-language expectations shown wherever a mode is selected.
+    var guidance: String {
+        switch self {
+        case .listen:
+            return "Hear a reviewed human recitation and follow the prayer text."
+        case .chant:
+            return "Recite aloud at your own pace. No recording plays in this mode."
+        case .silent:
+            return "Read or repeat the prayer inwardly. No sound plays."
         }
     }
 }

@@ -1,23 +1,139 @@
 name: Release readiness gate
 
-# The content sign-off gate. Runs on demand and on release tags — deliberately
-# NOT on every push — because it is EXPECTED to block until a named human
-# (cultural / theological) reviewer has signed off every prayer
-# (see CONTENT_GUIDELINES.md). A red run here means "not cleared to ship",
-# which is the correct state until sign-off is recorded in prayers.json.
 on:
   workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: "Optional exact 40-character commit SHA; defaults to the selected workflow ref SHA"
+        required: false
+        type: string
   push:
     tags: ["v*"]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gate-${{ github.ref }}-${{ inputs.candidate_sha || github.sha }}
+  cancel-in-progress: false
+
 jobs:
-  content-signoff:
-    name: Prayer content sign-off gate
+  content-and-factory:
+    name: Exact-commit content and factory gates
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CANDIDATE_SHA: ${{ inputs.candidate_sha || github.sha }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Record and verify exact commit
+        run: |
+          mkdir -p BuildReports/release-gate/preflight
+          if [[ ! "$CANDIDATE_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::candidate_sha must resolve to an exact 40-character commit SHA."
+            exit 1
+          fi
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [[ "${ACTUAL_SHA,,}" != "${CANDIDATE_SHA,,}" ]]; then
+            echo "::error::Checked out $ACTUAL_SHA, expected $CANDIDATE_SHA."
+            exit 1
+          fi
+          if [[ -n "$(git status --short)" ]]; then
+            echo "::error::Release-gate checkout is not clean."
+            git status --short
+            exit 1
+          fi
+          {
+            echo "candidate_sha=$ACTUAL_SHA"
+            echo "workflow_ref=$GITHUB_REF"
+            echo "runner_os=$RUNNER_OS"
+            python3 --version
+          } | tee BuildReports/release-gate/preflight/environment.txt
+
+      - name: Validate factory registration JSON
+        run: |
+          python3 -m json.tool .factory/project-context.json \
+            > BuildReports/release-gate/preflight/project-context.json
+          python3 -m json.tool .factory/standard-lock.json \
+            > BuildReports/release-gate/preflight/standard-lock.json
+          python3 -m json.tool quality/quality-manifest.json \
+            > BuildReports/release-gate/preflight/quality-manifest.json
+          python3 - <<'PY'
+          import json
+          with open(".factory/standard-lock.json", encoding="utf-8") as handle:
+              lock = json.load(handle)
+          if lock.get("standardVersion") != "0.2.0":
+              raise SystemExit("App Factory standard lock must remain at 0.2.0 for this candidate.")
+          PY
+
+      - name: Run structural prayer-content gate
+        run: |
+          set -o pipefail
+          python3 Scripts/validate_prayers.py 2>&1 |
+            tee BuildReports/release-gate/preflight/content-structural.log
+
       - name: Require a named-human sign-off on every prayer
-        run: python3 Scripts/validate_prayers.py --require-signoff
+        run: |
+          set -o pipefail
+          python3 Scripts/validate_prayers.py --require-signoff 2>&1 |
+            tee BuildReports/release-gate/preflight/content-signoff.log
+
+      - name: Check exported catalog is exact
+        run: |
+          python3 Scripts/export_catalog.py
+          if ! git diff --quiet -- Content/; then
+            echo "::error::Content exports differ from the exact candidate."
+            git --no-pager diff --stat -- Content/
+            exit 1
+          fi
+
+      - name: Upload preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-preflight-${{ env.CANDIDATE_SHA }}
+          path: BuildReports/release-gate/preflight/
+          if-no-files-found: error
+          retention-days: 30
+
+  engineering:
+    name: Release build, test matrix, and unsigned archive
+    needs: content-and-factory
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      CANDIDATE_SHA: ${{ inputs.candidate_sha || github.sha }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Run exact-commit unsigned engineering gate
+        env:
+          EXPECTED_SHA: ${{ inputs.candidate_sha || github.sha }}
+          SKIP_CONTENT_GATES: "1"
+        run: ./Scripts/release_gate.sh
+
+      - name: Upload release-gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-engineering-${{ env.CANDIDATE_SHA }}
+          path: |
+            BuildReports/release-gate/
+            !BuildReports/release-gate/**/DerivedData/
+            !BuildReports/release-gate/**/DerivedData-archive/
+          if-no-files-found: error
+          retention-days: 30

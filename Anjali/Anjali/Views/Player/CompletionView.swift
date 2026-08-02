@@ -26,10 +26,15 @@ struct CompletionView: View {
                     .opacity(appeared ? 1 : 0)
                     .accessibilityHidden(true)
 
-                Text("May this action be steady.")
-                    .font(.system(.title2, design: .serif))
-                    .foregroundStyle(theme.foreground)
-                    .multilineTextAlignment(.center)
+                VStack(spacing: 8) {
+                    Text("Prayer complete")
+                        .font(.system(.title2, design: .serif, weight: .semibold))
+                        .foregroundStyle(theme.foreground)
+                    Text("May this action be steady.")
+                        .font(.body)
+                        .foregroundStyle(theme.secondaryForeground)
+                }
+                .multilineTextAlignment(.center)
 
                 Spacer()
 
@@ -39,7 +44,7 @@ struct CompletionView: View {
                     }
                     .buttonStyle(AnjaliPrimaryButtonStyle(theme: theme))
                     .accessibilityLabel("Done")
-                    .accessibilityHint("Return to Today")
+                    .accessibilityHint("Close this prayer")
 
                     HStack(spacing: 12) {
                         Button(action: onRepeat) {

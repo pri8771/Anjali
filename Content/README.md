@@ -20,7 +20,7 @@ draft  →  reviewed  →  audio-ready  →  bundled
    transliteration, meaning, deity, moments, etc. are filled in.
    `review_status = draft`, `needs_review = true`.
 
-2. **reviewed** — A knowledgeable reviewer works through
+2. **reviewed** — A named knowledgeable human reviewer works through
    [`content_review_checklist.md`](content_review_checklist.md): verifies the
    source, checks the Devanagari and IAST transliteration, confirms the meaning,
    and notes any regional variants. When satisfied they set
@@ -28,14 +28,19 @@ draft  →  reviewed  →  audio-ready  →  bundled
    `reviewer_name`. Only `reviewed` prayers may be bundled.
 
 3. **audio-ready** *(optional)* — If a recitation is recorded, it is tracked in
-   `audio_manifest_template.csv` (one row per clip). Pronunciation is reviewed,
-   the clip is approved, and `audio_status`/`audio_asset_name` are updated on the
-   catalog row. Audio is always optional — a prayer ships fine without it and
-   the player falls back to a timed text experience.
+   an actual manifest derived from `audio_manifest_template.csv` (one row per
+   clip). Candidate/source forensics currently live in
+   `audio_candidate_manifest.csv`. Pronunciation, verbatim heard words and
+   repetitions, context, rights, immutable hash, technical mastering, timing,
+   and device playback are reviewed before `audio_status` or
+   `audio_asset_name` changes. Audio is always optional — a prayer ships fine
+   without it and the player falls back to a timed text experience.
 
-4. **bundled** — Reviewed rows are converted into entries in
-   `prayers.json`. Run the validator before committing:
-   `python3 ../Scripts/validate_prayers.py`.
+4. **bundled** — Approved rows are converted into entries in `prayers.json`.
+   Run both the structural and named-signoff validators before release:
+   `python3 Scripts/validate_prayers.py` and
+   `python3 Scripts/validate_prayers.py --require-signoff` from the repository
+   root.
 
 ## Files
 
@@ -44,7 +49,10 @@ draft  →  reviewed  →  audio-ready  →  bundled
 | `prayer_catalog_template.csv` | Empty CSV with the canonical column headers. Copy it to start fresh. |
 | `prayer_catalog_seed.csv` | The current 22 bundled prayers, exported from `prayers.json`. The source of truth editors expand. |
 | `audio_manifest_template.csv` | Empty CSV for tracking recorded audio per prayer. |
+| `audio_candidate_manifest.csv` | Current 22-prayer forensic ledger; candidates are not approvals. |
 | `content_review_checklist.md` | Step-by-step review before a prayer is approved for release. |
+| `hero_prayers.md` | Priority, coverage, and provisional-source status. |
+| `audio_spec.md` | Exact-ID, recording, transcript, technical, and timing rules. |
 
 ## Catalog columns
 
@@ -81,6 +89,13 @@ python3 Scripts/export_catalog.py     # run from the repo root
 
 ## Scope note
 
-This pass establishes the pipeline only. The bundled set stays at 22 reviewed
-prayers — expanding to 80–120 happens in a later content pass, flowing through
-this exact workflow.
+This pass establishes the pipeline only. The bundled set stays at 22
+structurally valid prayers. Its imported `isReviewed` flags do not replace
+named human provenance: as of 29 July 2026, the release gate is 0/22 signed and
+correctly blocks. Expansion happens only in a later reviewed content pass
+through this exact workflow.
+
+Audio/lyric remediation and future enablement follow
+[`../docs/AUDIO_LYRIC_ALIGNMENT_PLAN.md`](../docs/AUDIO_LYRIC_ALIGNMENT_PLAN.md).
+Source projects remain read-only; copy accepted assets with source/destination
+hash evidence and never move them.
