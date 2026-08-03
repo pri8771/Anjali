@@ -47,6 +47,10 @@ canonical; Jira and Notion are copies only.
   accepted by Apple at 15:55 EDT and entered processing. Upload evidence is
   recorded in the Xcode distribution log; the build has not yet been confirmed
   as processed or installed through TestFlight.
+- On 2 August 2026, the manually delivered audio-enabled version 1.0 build 2
+  archive was accepted by Apple at 21:50 EDT with no upload errors. It is now
+  awaiting App Store Connect processing before it can replace build 1 for the
+  `Anjali Pilot` tester.
 - Structural validation passes for all 22 bundled prayer records.
 - A real 1024×1024 RGB app icon with no alpha is bundled.
 - `PrivacyInfo.xcprivacy` is bundled and declares no tracking/data collection
