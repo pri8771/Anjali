@@ -155,27 +155,8 @@ struct PrayerPlayerView: View {
                 .frame(minHeight: 34)
                 .padding(.horizontal)
 
-            VStack(spacing: 10) {
-                controls
-
-                if mode != .listen {
-                    Button {
-                        controller.completeNow()
-                    } label: {
-                        Text("Complete").frame(maxWidth: .infinity)
-                    }
-                    .silentCompleteStyle(theme: theme)
-                    .accessibilityLabel("Complete prayer")
-                    .accessibilityHint(
-                        controller.hasStarted
-                            ? "Finish this prayer and show completion options"
-                            : "Begin the prayer before marking it complete"
-                    )
-                    .disabled(!controller.hasStarted)
-                    .opacity(controller.hasStarted ? 1 : 0.45)
-                }
-            }
-            .padding(.bottom, 24)
+            controls
+                .padding(.bottom, 24)
         }
         .padding(.horizontal, 24)
     }
@@ -209,26 +190,20 @@ struct PrayerPlayerView: View {
             .accessibilityLabel("TestFlight pilot notice. Listen uses experimental generated audio. Follow the displayed prayer text as the source of truth.")
     }
 
+    /// Listen shows real playback progress. Self-led modes have no clock to
+    /// report — the flame simply burns while the prayer is underway, so a full
+    /// ring can never masquerade as "finished".
     @ViewBuilder
     private var progressView: some View {
-        if mode == .silent {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(theme.foreground.opacity(0.15))
-                    Capsule()
-                        .fill(theme.accent)
-                        .frame(width: geo.size.width * controller.progress)
-                }
-            }
-            .frame(height: 5)
-            .padding(.vertical, 12)
-            .accessibilityElement()
-            .accessibilityLabel(progressAccessibilityLabel)
-        } else {
+        if mode == .listen {
             FlameProgressView(progress: controller.progress, theme: theme)
                 .frame(width: 92, height: 92)
                 .accessibilityLabel(progressAccessibilityLabel)
+        } else {
+            SelfLedFlameView(
+                theme: theme,
+                active: controller.hasStarted && !controller.isFinished
+            )
         }
     }
 
@@ -301,44 +276,57 @@ struct PrayerPlayerView: View {
         .accessibilityLabel("Listen style")
     }
 
+    /// Listen keeps play/pause because a recording is running. Chant and
+    /// Silent are self-led: the person is the player, so there is nothing to
+    /// pause — one action begins the prayer, the same button completes it.
     private var controls: some View {
         Button {
-            if controller.isRunning {
-                controller.pause()
-            } else {
+            if mode == .listen {
+                if controller.isRunning { controller.pause() } else { controller.start() }
+            } else if !controller.hasStarted {
                 controller.start()
+            } else {
+                controller.completeNow()
             }
         } label: {
             HStack {
-                Image(systemName: controller.isRunning ? "pause.fill" : "flame.fill")
+                Image(systemName: controlSymbol)
                 Text(controlTitle)
             }
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(AnjaliPrimaryButtonStyle(theme: theme))
-        .accessibilityLabel(controlTitle)
+        .accessibilityLabel(controlAccessibilityLabel)
+        .accessibilityHint(
+            mode != .listen && controller.hasStarted
+                ? "Finish this prayer and show completion options"
+                : ""
+        )
+    }
+
+    private var controlSymbol: String {
+        if mode == .listen {
+            return controller.isRunning ? "pause.fill" : "flame.fill"
+        }
+        return controller.hasStarted ? "checkmark" : "flame.fill"
     }
 
     private var controlTitle: String {
-        if controller.isRunning {
-            switch mode {
-            case .listen: return "Pause listening"
-            case .chant: return "Pause chanting"
-            case .silent: return "Pause silent prayer"
-            }
-        }
-        if controller.hasStarted {
-            switch mode {
-            case .listen: return "Resume listening"
-            case .chant: return "Continue chanting"
-            case .silent: return "Continue silent prayer"
-            }
-        }
         switch mode {
-        case .listen: return "Play recitation"
-        case .chant: return "Begin chanting"
-        case .silent: return "Begin silent prayer"
+        case .listen:
+            if controller.isRunning { return "Pause listening" }
+            return controller.hasStarted ? "Resume listening" : "Play recitation"
+        case .chant:
+            return controller.hasStarted ? "Complete" : "Begin chanting"
+        case .silent:
+            return controller.hasStarted ? "Complete" : "Begin silent prayer"
         }
+    }
+
+    /// Self-led completion keeps the label UI tests and VoiceOver users rely on.
+    private var controlAccessibilityLabel: String {
+        if mode != .listen && controller.hasStarted { return "Complete prayer" }
+        return controlTitle
     }
 
     private var statusText: String {
@@ -348,27 +336,24 @@ struct PrayerPlayerView: View {
         if controller.isFinished {
             return "Prayer complete"
         }
-        if !controller.hasStarted {
-            return "Ready · \(prayer.accessibleDuration)"
-        }
-        let time = formattedTime(controller.remaining)
-        if controller.isRunning {
-            switch mode {
-            case .listen: return "Playing · \(time) remaining"
-            case .chant:
-                return controller.remaining > 0
-                    ? "Chanting · \(time) suggested time remaining"
-                    : "Continue at your own pace · Complete when ready"
-            case .silent:
-                return controller.remaining > 0
-                    ? "Silent prayer · \(time) suggested time remaining"
-                    : "Continue at your own pace · Complete when ready"
+        switch mode {
+        case .listen:
+            if !controller.hasStarted {
+                return "Ready · \(prayer.accessibleDuration)"
             }
+            let time = formattedTime(controller.remaining)
+            return controller.isRunning
+                ? "Playing · \(time) remaining"
+                : "Paused · \(time) remaining"
+        case .chant:
+            return controller.hasStarted
+                ? "Chant as many times as feels right, then Complete"
+                : "Take the time you need"
+        case .silent:
+            return controller.hasStarted
+                ? "Rest in the words · Complete when ready"
+                : "Take the time you need"
         }
-        if controller.remaining <= 0 {
-            return "Paused · Continue at your own pace"
-        }
-        return "Paused · \(time) remaining"
     }
 
     private var progressAccessibilityLabel: String {
@@ -448,15 +433,25 @@ struct PrayerPlayerView: View {
     }
 }
 
-private extension View {
-    /// Discreet styling for the self-led modes' explicit completion action.
-    func silentCompleteStyle(theme: ThemePalette) -> some View {
-        self
-            .font(.headline)
-            .padding(.vertical, 14)
-            .background(theme.foreground.opacity(0.12))
-            .foregroundStyle(theme.foreground)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .buttonStyle(.plain)
+/// Ambient flame for the self-led modes: it glows and gently breathes while
+/// the prayer is underway. There is no progress ring because there is no
+/// clock — the person sets the pace.
+private struct SelfLedFlameView: View {
+    let theme: ThemePalette
+    let active: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 20, paused: reduceMotion || !active)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            Image(systemName: "flame.fill")
+                .font(.largeTitle)
+                .foregroundStyle(theme.accent)
+                .opacity(active ? 1 : 0.55)
+                .shadow(color: theme.accent.opacity(active ? 0.6 : 0.25), radius: 12)
+                .scaleEffect(reduceMotion || !active ? 1 : 1 + 0.05 * sin(t * 2))
+        }
+        .frame(width: 92, height: 92)
+        .accessibilityHidden(true)
     }
 }

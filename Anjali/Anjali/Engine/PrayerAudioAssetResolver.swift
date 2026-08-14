@@ -27,9 +27,9 @@ enum PrayerAudioVariant: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .traditional: return "Traditional"
-        case .energy: return "EDM"
-        case .deep: return "Hip-Hop"
+        case .traditional: return "Default"
+        case .energy: return "Version 1"
+        case .deep: return "Version 2"
         }
     }
 

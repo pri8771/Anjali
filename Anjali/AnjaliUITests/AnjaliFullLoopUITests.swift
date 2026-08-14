@@ -116,8 +116,8 @@ final class AnjaliFullLoopUITests: XCTestCase {
         XCTAssertTrue(beginButton.waitForExistence(timeout: 10), "Chant control did not appear")
         beginButton.tap()
         XCTAssertTrue(
-            app.buttons["Pause chanting"].waitForExistence(timeout: 5),
-            "Chant session did not expose visible running feedback"
+            app.buttons["Complete prayer"].waitForExistence(timeout: 5),
+            "A started chant must offer explicit completion instead of pause"
         )
     }
 
