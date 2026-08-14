@@ -45,7 +45,7 @@
     "Do not surface prayers marked unreviewed or needsReview.",
     "Do not fabricate cultural sign-off or Sanskrit provenance.",
     "Do not offer Listen when the exact prayer recording is absent from the current bundle.",
-    "Do not include synthetic or provisional audio in a normal Debug, device, Release, or TestFlight build.",
+    "Do not include synthetic or provisional audio in normal public Debug, device, Release, or App Store builds; the bounded TestFlight pilot exception requires visible experimental-audio disclosure and exact-ID assets.",
     "Do not play a sibling, same-deity, same-theme, or fuzzy-name audio asset for the displayed prayer.",
     "Do not present estimated lyric timing as synchronized with a recording.",
     "Do not describe Chant as recorded playback; it is self-led aloud.",

@@ -123,3 +123,8 @@ repository-owned, implementation-ready task sequence is
 Detailed subtask briefs are in
 [docs/testflight-tasks/](docs/testflight-tasks/README.md). Jira and Notion, if
 used, are copies of these repository plans.
+
+The separate website marketing, icon-candidate, screenshot, and waitlist work
+is tracked in
+[docs/MARKETING_LANDING_PAGE_TASKS.md](docs/MARKETING_LANDING_PAGE_TASKS.md).
+It does not change the release verdict or cultural-review requirements above.

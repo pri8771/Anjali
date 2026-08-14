@@ -11,6 +11,10 @@ final class PrayerAudioAssetResolverTests: XCTestCase {
             at: resourceRoot.appendingPathComponent("Audio", isDirectory: true),
             withIntermediateDirectories: true
         )
+        try FileManager.default.createDirectory(
+            at: resourceRoot.appendingPathComponent("PilotAudio", isDirectory: true),
+            withIntermediateDirectories: true
+        )
     }
 
     override func tearDownWithError() throws {
@@ -58,6 +62,23 @@ final class PrayerAudioAssetResolverTests: XCTestCase {
         )
 
         XCTAssertEqual(url?.lastPathComponent, "ganesha-gam.mp3")
+    }
+
+    func testPilotVariantsResolveWithoutReplacingTheExactPrayerAsset() throws {
+        try addVariant(id: "ganesha-gam", variant: .traditional)
+        try addVariant(id: "ganesha-gam", variant: .energy)
+
+        let prayer = prayer(id: "ganesha-gam", audioAssetName: "ganesha-gam")
+        let resolver = resolver(policy: .release)
+
+        XCTAssertEqual(
+            resolver.availableVariants(for: prayer),
+            [.traditional, .energy]
+        )
+        XCTAssertEqual(
+            resolver.resolve(prayer: prayer, variant: .energy)?.lastPathComponent,
+            "ganesha-gam__v02-energy-edm.mp3"
+        )
     }
 
     func testVishnuPrayerNeverFallsBackToDifferentVishnuRecording() throws {
@@ -120,6 +141,19 @@ final class PrayerAudioAssetResolverTests: XCTestCase {
             .appendingPathComponent("Audio", isDirectory: true)
             .appendingPathComponent(id)
             .appendingPathExtension(fileExtension)
+        try Data([0]).write(to: url)
+    }
+
+    private func addVariant(id: String, variant: PrayerAudioVariant) throws {
+        let suffix: String
+        switch variant {
+        case .traditional: suffix = "v01-traditional"
+        case .energy: suffix = "v02-energy-edm"
+        case .deep: suffix = "v03-deep-indian-hip-hop"
+        }
+        let url = resourceRoot
+            .appendingPathComponent("PilotAudio", isDirectory: true)
+            .appendingPathComponent("\(id)__\(suffix).mp3")
         try Data([0]).write(to: url)
     }
 

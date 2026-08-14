@@ -66,3 +66,11 @@ are linked from their detailed briefs under `docs/testflight-tasks/`.
 The future frozen-SHA automation and current baseline are documented in
 `quality/evidence/2026-07-29-tf-006-release-automation.md` and
 `quality/evidence/2026-07-29-current-engineering-preflight.md`.
+
+## Marketing-page handoff
+
+The owner opened a parallel public-website track covering three distinct
+Anjali landing-page concepts, three icon candidates, real screenshot capture,
+and an app-specific HubSpot waitlist. Execute and update
+`docs/MARKETING_LANDING_PAGE_TASKS.md`; do not infer approval from the local
+Claude Design ZIP or publish unreviewed sacred content or audio claims.

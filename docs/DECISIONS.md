@@ -175,3 +175,25 @@ Plan: [Daily-Use Consumer Product Plan](DAILY_USE_PRODUCT_PLAN.md).
   for the explicitly disclosed pilot. It does not grant human-review,
   pronunciation, rights, lyric-identity, or public-release approval; App Store
   release remains blocked until the original human-recording gate is satisfied.
+
+## DEC-015 — Expand TestFlight pilot scope to audio variants
+
+- **Status:** accepted (7 August 2026; product-owner direction)
+- **Context:** The Suno pilot produced multiple style variants for selected
+  prayers, while the player previously supported one exact-ID audio asset per
+  prayer.
+- **Decision:** Add a compact variant picker to Listen mode with Traditional
+  selected by default, plus EDM and Indian hip-hop alternates where verified
+  assets exist. Package only hash-recorded, exact-ID pilot assets and retain
+  the existing experimental-audio disclosure.
+- **Scope change:**
+  - **In scope:** 8 verified Suno variants for `ganesha-gam` (3),
+    `ganesha-shri` (3), and `vishnu-shantakaram` (2); variant resolution; the
+    Listen-mode picker; and the pilot asset manifest.
+  - **Out of scope:** Public/App Store generated audio, replacing the
+    human-recording approval gate, shipping all remaining Suno jobs, and final
+    lyric/cultural approval.
+- **Consequences:** Traditional is the initial/default experience; changing
+  variants resets playback; the MP3 pilot assets must be replaced by approved
+  AAC/M4A human recordings before public release; and device/TestFlight QA is
+  required for the new picker and packaged assets.

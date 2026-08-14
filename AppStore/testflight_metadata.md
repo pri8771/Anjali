@@ -30,7 +30,7 @@ Anjali has no sign-in, advertising, analytics, purchases, or network service.
 ## Feedback Email
 
 ```text
-[MONITORED_BETA_FEEDBACK_EMAIL]
+support@priyanshchordia.com
 ```
 
 This field is required for external TestFlight. Verify the mailbox receives and
@@ -69,10 +69,10 @@ For sacred-text or cultural concerns, identify the prayer title and exact field.
 Store private contact values in App Store Connect if repository publication is
 inappropriate.
 
-- First name: `[REVIEW_CONTACT_FIRST_NAME]`
-- Last name: `[REVIEW_CONTACT_LAST_NAME]`
+- First name: `Priyansh`
+- Last name: `Chordia`
 - Phone: `[REVIEW_CONTACT_PHONE]`
-- Email: `[REVIEW_CONTACT_EMAIL]`
+- Email: `priyansh.chordia@gmail.com`
 
 ## Sign-in Information
 
@@ -123,14 +123,14 @@ blockers are closed. The canonical product sequence is
 
 ## Public and internal values
 
-- Privacy policy URL: `[PUBLIC_PRIVACY_POLICY_URL]`
-- Support URL: `[PUBLIC_SUPPORT_URL_OR_TRACKED_FOLLOW_ON]`
+- Privacy policy URL: `https://priyanshchordia.com/apps/anjali/privacy/`
+- Support URL: `https://priyanshchordia.com/apps/anjali/support/`
 - App Store Connect app Apple ID: `[APP_APPLE_ID]`
 - Bundle ID: `app.anjali.Anjali`
 - Marketing version: `1.0`
 - Distribution team: `796XH483R4` — ownership must be confirmed
 - External group name: `[EXTERNAL_GROUP_NAME]`
-- Internal group name: `[INTERNAL_GROUP_NAME]`
+- Internal group name: `Anjali Pilot`
 
 ## Final synchronization checklist
 

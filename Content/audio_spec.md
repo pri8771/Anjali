@@ -32,6 +32,13 @@ and public-release builds remain subject to the full human-recording gate below.
 - Every pilot asset must be recorded in the candidate manifest with source,
   hash, generation title, known limitations, and the explicit `testflight_pilot`
   release policy.
+- The pilot may expose multiple selected variants for a prayer through the
+  Listen-style picker. Traditional is the default; EDM and Indian hip-hop are
+  alternate experimental variants. These are tracked in
+  `pilot_audio_variants_manifest.csv` and remain TestFlight-only.
+- The newly downloaded Suno variants are retained in their exported MP3 form
+  for this bounded pilot. They are not consumer audio and must be replaced by
+  approved AAC/M4A human recordings before any public release.
 - Normal public/App Store builds use the approved human-recording catalog.
 - Stale DerivedData is not evidence. Verify a clean `.app` bundle and the
   visible experimental-audio disclosure before pilot distribution.

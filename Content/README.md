@@ -50,6 +50,7 @@ draft  →  reviewed  →  audio-ready  →  bundled
 | `prayer_catalog_seed.csv` | The current 22 bundled prayers, exported from `prayers.json`. The source of truth editors expand. |
 | `audio_manifest_template.csv` | Empty CSV for tracking recorded audio per prayer. |
 | `audio_candidate_manifest.csv` | Current 22-prayer forensic ledger; candidates are not approvals. |
+| `pilot_audio_variants_manifest.csv` | Hash-bound Suno pilot variants; TestFlight-only and not consumer approvals. |
 | `content_review_checklist.md` | Step-by-step review before a prayer is approved for release. |
 | `hero_prayers.md` | Priority, coverage, and provisional-source status. |
 | `audio_spec.md` | Exact-ID, recording, transcript, technical, and timing rules. |

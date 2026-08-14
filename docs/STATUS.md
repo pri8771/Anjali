@@ -22,6 +22,16 @@ Execute the P0/P1 product work in `docs/DAILY_USE_PRODUCT_PLAN.md`, then
 weakening the offline/private product contract. These repository plans are
 canonical; Jira and Notion are copies only.
 
+## Website marketing track
+
+`docs/MARKETING_LANDING_PAGE_TASKS.md` is the canonical Anjali task plan for
+the new landing page, three Claude Design concepts, three icon candidates,
+exact-candidate screenshots, HubSpot waitlist, privacy/consent review, website
+handoff, verification, and publication. The local five-app design ZIP is
+prepared, but no Claude output, icon, screenshot set, copy deck, waitlist, or
+page is approved. This track runs in parallel and does not bypass prayer,
+audio, accessibility, device, or external-TestFlight gates.
+
 ## Verified (current working tree; not a frozen candidate)
 
 - Xcode 26.6 with the iOS 26.5 SDK compiles the Release simulator product.

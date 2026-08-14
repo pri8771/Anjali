@@ -17,6 +17,7 @@ struct PrayerPlayerView: View {
 
     @StateObject private var controller: PlayerController
     @State private var mode: PlayMode
+    @State private var audioVariant: PrayerAudioVariant
     @State private var showCompletion = false
     @State private var persistenceErrorMessage: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -28,12 +29,23 @@ struct PrayerPlayerView: View {
     init(prayer: Prayer, forcedMode: PlayMode? = nil) {
         self.prayer = prayer
         self.forcedMode = forcedMode
-        let audioAvailable = PrayerAudioAssetResolver().resolve(prayer: prayer) != nil
+        let audioResolver = PrayerAudioAssetResolver()
+        let audioVariants = audioResolver.availableVariants(for: prayer)
+        let initialAudioVariant = audioVariants.contains(.traditional)
+            ? .traditional
+            : audioVariants.first ?? .traditional
+        let audioAvailable = !audioVariants.isEmpty
         let playerModes = prayer.playableModes(audioAvailable: audioAvailable)
+        _audioVariant = State(initialValue: initialAudioVariant)
         self.playerModes = playerModes
         let initialMode = forcedMode ?? playerModes.first ?? .silent
         _mode = State(initialValue: initialMode)
-        _controller = StateObject(wrappedValue: PlayerController(prayer: prayer, mode: initialMode))
+        _controller = StateObject(wrappedValue: PlayerController(
+            prayer: prayer,
+            mode: initialMode,
+            audioAssetResolver: audioResolver,
+            audioVariant: initialAudioVariant
+        ))
     }
 
     var body: some View {
@@ -85,6 +97,10 @@ struct PrayerPlayerView: View {
             topBar
 
             modePicker.padding(.top, 12)
+
+            if mode == .listen && audioVariants.count > 1 {
+                audioVariantPicker.padding(.top, 10)
+            }
 
             modeGuidance
                 .padding(.top, 12)
@@ -249,6 +265,40 @@ struct PrayerPlayerView: View {
                 }
             }
         }
+    }
+
+    private var audioVariants: [PrayerAudioVariant] {
+        PrayerAudioAssetResolver().availableVariants(for: prayer)
+    }
+
+    private var audioVariantPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(audioVariants) { variant in
+                    Button {
+                        audioVariant = variant
+                        controller.setAudioVariant(variant)
+                    } label: {
+                        Text(variant.displayName)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(
+                                audioVariant == variant ? theme.background : theme.foreground
+                            )
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                audioVariant == variant ? theme.accent : theme.foreground.opacity(0.08)
+                            )
+                            .clipShape(Capsule())
+                    }
+                    .accessibilityLabel("Listen style: \(variant.displayName)")
+                    .accessibilityAddTraits(audioVariant == variant ? .isSelected : [])
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Listen style")
     }
 
     private var controls: some View {

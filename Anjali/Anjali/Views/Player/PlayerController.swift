@@ -17,6 +17,7 @@ final class PlayerController: ObservableObject {
 
     private let prayer: Prayer
     private let audioAssetResolver: PrayerAudioAssetResolver
+    private var audioVariant: PrayerAudioVariant
     private var mode: PlayMode
     private var audioPlayer: AVAudioPlayer?
     private var timer: AnyCancellable?
@@ -27,11 +28,13 @@ final class PlayerController: ObservableObject {
     init(
         prayer: Prayer,
         mode: PlayMode,
-        audioAssetResolver: PrayerAudioAssetResolver = PrayerAudioAssetResolver()
+        audioAssetResolver: PrayerAudioAssetResolver = PrayerAudioAssetResolver(),
+        audioVariant: PrayerAudioVariant = .traditional
     ) {
         self.prayer = prayer
         self.mode = mode
         self.audioAssetResolver = audioAssetResolver
+        self.audioVariant = audioVariant
     }
 
     /// Change mode mid-session (resets progress).
@@ -39,6 +42,13 @@ final class PlayerController: ObservableObject {
         guard newMode != mode else { return }
         stop()
         mode = newMode
+        reset()
+    }
+
+    func setAudioVariant(_ newVariant: PrayerAudioVariant) {
+        guard newVariant != audioVariant else { return }
+        stop()
+        audioVariant = newVariant
         reset()
     }
 
@@ -122,7 +132,7 @@ final class PlayerController: ObservableObject {
     /// Attempt to load the prayer's approved bundled audio. Returns false and
     /// flags `audioUnavailable` when playback cannot begin.
     private func prepareAudio() -> Bool {
-        guard let url = audioAssetResolver.resolve(prayer: prayer) else {
+        guard let url = audioAssetResolver.resolve(prayer: prayer, variant: audioVariant) else {
             audioUnavailable = true
             return false
         }
