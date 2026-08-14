@@ -6,9 +6,16 @@ source of truth.
 **Status:** blocked draft — named cultural/theological sign-off is 0/22 and the
 manual physical-device and accessibility matrices remain pending.
 Placeholders must also be replaced before external Beta App Review.
-**Approved build:** `[BUILD_NUMBER]`
+**Approved build:** `[BUILD_NUMBER]` (not yet human-approved; do not confuse
+with the current uploaded candidate below)
 **Approved source commit:** `[FULL_GIT_SHA]`
 **Copy approved by/date:** `[NAME — YYYY-MM-DD]`
+**Current uploaded candidate (unapproved):** build `4`, source commit
+`59c9bd299dd4d75a2e87a65b3a87732ed28883f4`, uploaded 14 August 2026. See
+`quality/evidence/2026-08-14-build-4-upload.md`. This supersedes build 3
+(`b3c5684`), which did not contain the 14 August player-flow and audio
+fixes. Uploading does not constitute copy approval — the fields above still
+need a named approver before this packet can be used for review.
 
 ## Beta App Description
 

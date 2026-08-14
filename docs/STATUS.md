@@ -1,6 +1,6 @@
 # Project Status
 
-Last verified: 2 August 2026.
+Last verified: 14 August 2026.
 
 ## Lifecycle status
 
@@ -61,6 +61,34 @@ audio, accessibility, device, or external-TestFlight gates.
   archive was accepted by Apple at 21:50 EDT with no upload errors. It is now
   awaiting App Store Connect processing before it can replace build 1 for the
   `Anjali Pilot` tester.
+- On 11 August 2026, version 1.0 build 3 (source `b3c5684` plus working-tree
+  audio/build-number changes) was archived, uploaded, and reached `Ready to
+  Submit` in App Store Connect, attached to version 1.0 and the internal
+  `Anjali Pilot` group. It was never submitted for Beta App Review or App
+  Store review: the listing lacks required metadata (screenshots, support
+  URL, copyright, review contact, description/keywords). Evidence:
+  `quality/evidence/2026-08-11-build-3-upload.md`.
+- Two commits landed on `dev` on 14 August 2026 after build 3 was cut —
+  `e64dade` (self-led player rework: Begin -> Complete instead of
+  pause/countdown) and `59c9bd2` (all pilot audio replaced with
+  chant-standard Suno regenerations, except `vishnu-shantakaram`, whose
+  regeneration Suno's moderation rejected as false-positive "copyrighted
+  material"; see `docs/RISKS.md` RISK-009). `origin/main` was 4 commits
+  behind `origin/dev`, so build 3 did not contain either fix.
+- On 14 August 2026, `main` was fast-forwarded to `dev`'s HEAD (`59c9bd2`)
+  and pushed (`f5b1a9b..59c9bd2`, no conflicts, no history rewrite). Version
+  1.0 build 4 was then archived from that commit, signed with team
+  `796XH483R4`, and uploaded to App Store Connect (`Upload succeeded`).
+  Build 4 is the first uploaded build that actually contains the 14 August
+  player and audio fixes — confirmed by matching `CFBundleVersion=4` and by
+  the archived bundle's pilot-audio file sizes matching commit `59c9bd2`
+  exactly. App Store Connect processing/"Ready to Submit" status for build 4
+  was not checked this session: no App Store Connect API key is configured
+  on this machine, and this session will not perform an interactive Apple ID
+  sign-in to check the web UI. A human needs to confirm build 4 processes
+  cleanly and reattach/reconfirm the `Anjali Pilot` group if App Store
+  Connect does not carry the group assignment forward automatically.
+  Evidence: `quality/evidence/2026-08-14-build-4-upload.md`.
 - Structural validation passes for all 22 bundled prayer records.
 - A real 1024×1024 RGB app icon with no alpha is bundled.
 - `PrivacyInfo.xcprivacy` is bundled and declares no tracking/data collection
@@ -121,17 +149,38 @@ results.
 - The Apple account's agreements, role scope, TestFlight tester assignment,
   regions, and beta metadata still need confirmation. The app record and
   uploaded build do not establish them.
-- TestFlight build 1 contains the no-audio catalog. A local build-2 candidate
-  now bundles 22 exact-ID pilot tracks and labels Listen as experimental
-  generated audio; it requires device playback verification and a new upload.
+- Build 4 (1.0, uploaded 14 August 2026) is the current candidate and is the
+  first upload to contain the 14 August player-flow and chant-audio fixes.
+  Its App Store Connect processing/"Ready to Submit" status is unverified
+  (no API credentials configured; see RISK-010). App Store Connect listing
+  metadata remains incomplete for either Beta App Review or App Store
+  review: screenshots, support URL confirmation, copyright, review contact,
+  and description/keywords are still open (`AppStore/testflight_metadata.md`
+  still has bracketed placeholders for build number, source commit, and
+  copy-approval sign-off).
+- `vishnu-shantakaram` pilot audio still uses the old song-style production
+  because Suno's moderation rejected all three chant-standard regeneration
+  attempts as false-positive "copyrighted material" (RISK-009, newly
+  tracked). It is not blocking in the sense of app functionality, but it is
+  an inconsistency against the chant standard the rest of Listen mode now
+  meets.
 
 ## Next action
 
-Verify DU-001/DU-005/DU-007 on the iPhone and execute the remaining consumer
-tasks. In parallel, appoint the TF-001 reviewer and DU-002 human
-reciter/pronunciation reviewer, complete TF-002 account ownership, and provide
-TF-003 public contact values. Do not freeze TF-005 until the P0 product and
-named-human gates pass.
+A human owner must: (1) confirm build 4 finishes App Store Connect
+processing and reaches "Ready to Submit," reattaching the `Anjali Pilot`
+TestFlight group if needed; (2) fill in App Store Connect metadata
+(screenshots, support URL, copyright, review contact, description/keywords)
+directly in App Store Connect, since this session had no API credentials to
+do it programmatically and will not perform an interactive Apple ID login;
+(3) appoint the TF-001 named reviewer to close RISK-001 (0/22 prayer
+sign-off) — this remains the real blocker for submitting for review, is
+intentionally not something this session attempted to close, and
+`python3 Scripts/validate_prayers.py --require-signoff` will continue to
+correctly fail until it is; (4) verify DU-001/DU-005/DU-007 and the BUG-004/
+006/007/008/009/010 device checks against build 4 specifically, not build 3;
+(5) decide on `vishnu-shantakaram`'s audio gap (RISK-009). Do not freeze
+TF-005 until the P0 product and named-human gates pass.
 
 Repository preparation is already available:
 

@@ -17,4 +17,24 @@
 No other reproducible code defects are currently open. Release risks and
 unverified behavior are tracked separately in `docs/RISKS.md`.
 
+## Verification target
+
+As of 14 August 2026, build 3 (uploaded 11 August, still `Ready to Submit`
+in App Store Connect) does **not** contain the player-flow rework
+(`e64dade`) or the chant-standard audio regenerations (`59c9bd2`). Any
+physical-device verification performed against build 3 — including for
+BUG-004, BUG-006, BUG-007, BUG-008, BUG-009, and BUG-010, all of which touch
+audio selection or the self-led player — would be checking stale behavior.
+Build 4 (`1.0 (4)`, source commit `59c9bd2`, evidence in
+`quality/evidence/2026-08-14-build-4-upload.md`) was archived and uploaded
+this session and is the first build that actually contains these fixes. No
+device or App Store Connect processing verification was performed on build
+4 during this session — this repository pass only confirmed the fixes are
+present in the source tree and in the archived bundle's binary
+version/build number and audio file sizes, not runtime behavior on a
+device. BUG-001, 002, 004, 006, 007, 008, 009, 010, and 011 all still
+require the human owner to install build 4 (once processed) on a physical
+device and re-run the manual checks; none of that device evidence changed
+in this session.
+
 Record observed behavior, reproduction steps, expected behavior, environment, and evidence. Do not convert assumptions into confirmed bugs.
